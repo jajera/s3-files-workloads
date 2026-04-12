@@ -5,7 +5,19 @@ sidebar:
   label: Introduction
 ---
 
+import { Image } from 'astro:assets';
 import { CardGrid, LinkCard, Aside } from '@astrojs/starlight/components';
+import hero from '../../assets/s3-files-landing-hero.png';
+
+<Image
+  src={hero}
+  alt="Conceptual illustration: object storage in a bucket connected by NFS-style paths to compute workloads"
+  widths={[800, 1200]}
+  sizes="(min-width: 80rem) 72rem, 100vw"
+  loading="eager"
+  decoding="async"
+  style="width: 100%; max-width: 72rem; height: auto; border-radius: 0.5rem; margin-block: 0 1.25rem; border: 1px solid var(--sl-color-hairline-light);"
+/>
 
 **Amazon S3 Files** mounts an S3 bucket as an NFS file system inside EC2, ECS Fargate, and Lambda — giving your applications a familiar POSIX file-system interface backed by durable object storage.
 
