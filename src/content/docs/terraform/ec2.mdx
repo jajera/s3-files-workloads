@@ -1,0 +1,170 @@
+---
+title: EC2 — Terraform Example
+description: Provision an Amazon Linux 2023 EC2 instance with S3 Files mounted at /mnt/s3files using terraform-aws-s3-files.
+sidebar:
+  label: EC2
+---
+
+import { Steps, Aside, FileTree } from '@astrojs/starlight/components';
+import Checklist from '@/components/Checklist.astro';
+
+<Checklist
+  id="terraform-ec2"
+  items={[
+    'Prerequisites confirmed (Terraform >= 1.5, AWS CLI v2.34.26+, AWS credentials)',
+    'terraform.tfvars created with vpc_id and subnet_ids',
+    'terraform apply completed successfully',
+    'EC2 instance reachable via SSM Session Manager',
+    'File system mounted and visible at /mnt/s3files',
+  ]}
+/>
+
+## What this example does
+
+This example provisions:
+
+- An S3 bucket (versioning + SSE-S3 enabled)
+- An S3 Files file system and mount targets in each provided subnet
+- IAM roles (file system role + EC2 instance profile)
+- Security groups (compute → mount target on NFS port 2049)
+- An Amazon Linux 2023 EC2 instance with `amazon-efs-utils` installed and the file system mounted at `/mnt/s3files`
+
+Access to the instance is through **SSM Session Manager** — no SSH key pair or bastion host is needed.
+
+<Steps>
+
+1. **Confirm prerequisites.**
+
+   | Requirement | Minimum version |
+   | --- | --- |
+   | Terraform | 1.5 |
+   | AWS provider | 6.40 |
+   | AWS CLI | 2.34.26 (for `aws ssm start-session`) |
+
+   Install the Session Manager plugin if not already present:
+
+   ```bash frame="terminal"
+   aws ssm start-session --version
+   ```
+
+   If the command is not found, follow the [AWS Session Manager plugin installation guide](https://docs.aws.amazon.com/systems-manager/latest/userguide/session-manager-working-with-install-plugin.html).
+
+2. **Clone the example.**
+
+   ```bash frame="terminal"
+   git clone https://github.com/jajera/terraform-aws-s3-files.git
+   cd terraform-aws-s3-files/examples/ec2
+   ```
+
+   The example directory contains:
+
+   <FileTree>
+   - examples/ec2/
+     - main.tf
+     - terraform.tfvars.example
+     - terraform.tfvars _(you create this)_
+   </FileTree>
+
+3. **Create `terraform.tfvars`.**
+
+   Copy the example file and set your VPC and subnet IDs:
+
+   ```bash frame="terminal"
+   cp terraform.tfvars.example terraform.tfvars
+   ```
+
+   Edit `terraform.tfvars`:
+
+   ```hcl
+   vpc_id     = "vpc-0123456789abcdef0"
+   subnet_ids = ["subnet-aaaaaaaaaaaaaaaaa", "subnet-bbbbbbbbbbbbbbbbb"]
+
+   # Optional overrides (defaults shown):
+   # aws_region         = "ap-southeast-6"
+   # instance_type      = "t3.micro"
+   # bucket_name        = null   # auto-generated: s3files-demo-<random>
+   # bucket_force_destroy = true
+   ```
+
+   | Variable | Default | Required | Description |
+   | --- | --- | --- | --- |
+   | `vpc_id` | — | yes | VPC for mount targets and EC2 instance |
+   | `subnet_ids` | — | yes | Subnets for mount targets (one per AZ recommended) |
+   | `instance_subnet_id` | first `subnet_ids` entry | no | Subnet for the EC2 instance |
+   | `aws_region` | `ap-southeast-6` | no | AWS region |
+   | `instance_type` | `t3.micro` | no | EC2 instance type |
+   | `bucket_name` | auto-generated | no | Leave `null` to use `s3files-demo-<random>` |
+   | `bucket_force_destroy` | `true` | no | Allow destroy even when bucket contains objects |
+
+4. **Initialise and apply.**
+
+   ```bash frame="terminal"
+   terraform init
+   terraform plan
+   terraform apply
+   ```
+
+   <Aside type="note">
+     `terraform apply` creates the file system, waits for mount targets to become available, and launches the EC2 instance. The user data script installs `amazon-efs-utils` and mounts the file system. Allow 3–5 minutes for the instance to reach a ready state after the apply completes.
+   </Aside>
+
+   When apply finishes, note the outputs:
+
+   ```bash frame="terminal"
+   terraform output
+   ```
+
+   Key outputs:
+
+   | Output | Description |
+   | --- | --- |
+   | `instance_id` | EC2 instance ID (`i-…`) |
+   | `file_system_id` | S3 Files file system ID |
+   | `bucket_name` | Backing S3 bucket name |
+   | `ami_id` | Amazon Linux 2023 AMI used |
+
+5. **Connect via SSM Session Manager.**
+
+   ```bash frame="terminal"
+   aws ssm start-session \
+     --target "$(terraform output -raw instance_id)" \
+     --region ap-southeast-6
+   ```
+
+   <Aside type="note">
+     If the session fails immediately with `TargetNotConnected`, the SSM agent may still be starting. Wait 60 seconds and retry. The instance must reach SSM before user data completes.
+   </Aside>
+
+6. **Verify the mount.**
+
+   Inside the SSM session:
+
+   ```bash frame="terminal"
+   df -h /mnt/s3files
+   ls -la /mnt/s3files
+   ```
+
+   Write a file and confirm it appears in S3:
+
+   ```bash frame="terminal"
+   echo "hello from terraform ec2" > /mnt/s3files/test.txt
+   cat /mnt/s3files/test.txt
+   ```
+
+   Exit the session when done:
+
+   ```bash frame="terminal"
+   exit
+   ```
+
+7. **Tear down.**
+
+   ```bash frame="terminal"
+   terraform destroy
+   ```
+
+   <Aside type="caution">
+     `bucket_force_destroy = true` (the default) means `terraform destroy` deletes the bucket and all its objects, including all S3 versioning history. Set it to `false` before apply if you need to preserve the bucket.
+   </Aside>
+
+</Steps>

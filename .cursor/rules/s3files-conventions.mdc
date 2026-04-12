@@ -1,0 +1,154 @@
+---
+description: S3 Files-specific facts, constraints, and CLI patterns every agent must follow in this repo.
+globs:
+  - "src/content/docs/**/*.mdx"
+alwaysApply: false
+---
+
+# S3 Files Conventions
+
+These rules encode knowledge gaps in the AWS docs and constraints that apply throughout every page in this repo.
+
+## CLI namespace
+
+S3 Files uses a **separate CLI service namespace** — not `aws s3` or `aws efs`. **Minimum: AWS CLI v2.34.26.** Older v2 (e.g. 2.34.23) and AWS CLI v1 return `Found invalid choice 's3files'`.
+
+Document the minimum CLI in the setup index **Prerequisites** section (`src/content/docs/setup/index.mdx`).
+
+```bash frame="terminal"
+# ✅ Correct (S3 Files uses list-* / get-* for reads, not describe-*)
+aws s3files create-file-system ...
+aws s3files list-file-systems ...
+aws s3files get-file-system ...
+aws s3files create-mount-target ...
+aws s3files list-mount-targets ...
+aws s3files create-access-point ...
+aws s3files get-access-point ...
+
+# ❌ Wrong
+aws s3 create-file-system ...
+aws efs create-file-system ...
+aws s3files describe-file-systems ...   # operation does not exist
+```
+
+## Mount type
+
+The mount helper registers a new filesystem type `s3files`. Always use `-t s3files`, not `-t nfs4`.
+
+```bash frame="terminal"
+# ✅ Correct
+sudo mount -t s3files $FS_ID:/ /mnt/s3files
+
+# ❌ Wrong
+sudo mount -t nfs4 ...
+```
+
+## Two IAM roles — always document both
+
+Every setup or IAM page must explain **both** roles side-by-side:
+
+| Role | Who assumes it | Purpose |
+| ---- | -------------- | ------- |
+| **File system role** | `elasticfilesystem.amazonaws.com` | S3 Files service reads/writes the linked S3 bucket and manages EventBridge sync rules |
+| **Compute role** | EC2 instance profile / ECS task role / Lambda exec role / EKS IRSA or Pod Identity | Compute mounts the file system and accesses objects directly |
+
+The service principal is `elasticfilesystem.amazonaws.com` (not `s3.amazonaws.com`) — this surprises readers; call it out explicitly.
+
+In the **trust policy**, `aws:SourceArn` must be `arn:aws:s3files:REGION:ACCOUNT:file-system/*`, **not** `arn:aws:elasticfilesystem:…`. Wrong `SourceArn` breaks assume-role/sync and can show **Unknown Error** on console Synchronization. Inline policy EventBridge manage actions must use `DO-NOT-DELETE-S3-Files*` with `events:ManagedBy` per [AWS prerequisites](https://docs.aws.amazon.com/AmazonS3/latest/userguide/s3-files-prereq-policies.html). User-facing detail lives on [File System](/s3-files-workloads/setup/filesystem/).
+
+## Bucket prerequisites (must appear before any setup steps)
+
+Always check these before creating the file system:
+
+1. **Versioning must be enabled** — S3 Files requires versioning for sync.
+2. **Only SSE-S3 or SSE-KMS** — SSE-C and DSSE-KMS are not supported.
+
+```bash frame="terminal"
+aws s3api put-bucket-versioning \
+  --bucket $BUCKET \
+  --versioning-configuration Status=Enabled
+
+aws s3api get-bucket-encryption --bucket $BUCKET
+```
+
+## EC2: `amazon-efs-utils` version requirement
+
+The mount helper is shipped as part of `amazon-efs-utils`. S3 Files requires **version 3.0.0 or above**.
+
+```bash frame="terminal"
+# Amazon Linux 2023
+sudo dnf install -y amazon-efs-utils
+
+# Amazon Linux 2 / generic
+sudo yum install -y amazon-efs-utils
+
+# Ubuntu / Debian
+curl https://amazon-efs-utils.aws.com/efs-utils-installer.sh | sudo sh -s -- --install
+```
+
+## ECS: Fargate and Managed Instances only
+
+**S3 Files volumes are NOT supported on the ECS EC2 launch type.** If a task definition with an S3 Files volume is run on EC2 launch type, the task will fail. Always include this callout at the top of ECS pages:
+
+```mdx
+<Aside type="caution">
+  S3 Files volumes work on **Fargate** and **ECS Managed Instances** only.
+  The EC2 launch type is not supported — tasks will fail if configured with an S3 Files volume and run on EC2.
+</Aside>
+```
+
+## Lambda: access point required
+
+Lambda requires an **access point** to mount an S3 file system — it cannot mount a file system directly by ID. When auto-created by the console, the access point uses UID/GID `1000/1000` and a `/Lambda` scope.
+
+Always create the access point via CLI on the Lambda pages:
+
+```bash frame="terminal"
+aws s3files create-access-point \
+  --file-system-id $FS_ID \
+  --posix-user Uid=1000,Gid=1000 \
+  --root-directory Path=/lambda \
+  --region $AWS_REGION
+```
+
+## EKS: EFS CSI driver is the same driver
+
+S3 Files on EKS uses the **Amazon EFS CSI driver** (`aws-efs-csi-driver`) — not a separate driver. The same Helm chart and StorageClass serve both EFS and S3 Files. Always note this in EKS pages so readers know they are not installing something new.
+
+## Security group port
+
+S3 Files uses NFS over port **2049 TCP**. Always show the explicit `aws ec2 authorize-security-group-*` commands, not just a table:
+
+**`create-security-group --description`:** EC2 accepts **ASCII only** in the description string. Do not use typographic dashes (`—`, `–`) or other Unicode in CLI examples; AWS returns `InvalidParameterValue` / “Character sets beyond ASCII are not supported.”
+
+```bash frame="terminal"
+# Outbound from compute SG to mount target SG
+aws ec2 authorize-security-group-egress \
+  --group-id $COMPUTE_SG_ID \
+  --protocol tcp --port 2049 \
+  --source-group $MOUNT_TARGET_SG_ID \
+  --region $AWS_REGION
+
+# Inbound on mount target SG from compute SG
+aws ec2 authorize-security-group-ingress \
+  --group-id $MOUNT_TARGET_SG_ID \
+  --protocol tcp --port 2049 \
+  --source-group $COMPUTE_SG_ID \
+  --region $AWS_REGION
+```
+
+## Standard export block
+
+Every CLI walkthrough page must start with a consistent export block so readers can copy-paste the rest of the commands:
+
+```bash frame="terminal"
+export AWS_REGION=ap-southeast-6
+export BUCKET=my-s3-files-bucket
+export BUCKET_ARN=arn:aws:s3:::${BUCKET}
+export ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+export FS_ID=fs-0123456789abcdef0   # set after create-file-system
+```
+
+---
+
+_Update this rule when a new S3 Files constraint is discovered._

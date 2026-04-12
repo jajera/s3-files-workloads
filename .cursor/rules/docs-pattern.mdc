@@ -1,0 +1,145 @@
+---
+description: Pattern and conventions for creating and editing walkthrough documentation pages in this repo.
+globs:
+  - "src/content/docs/**/*.mdx"
+  - "src/content/docs/**/*.md"
+alwaysApply: false
+---
+
+# Docs Pattern
+
+## File types
+
+- Use `.mdx` for all walkthrough pages (required for component imports).
+- Use `.md` only for simple content with no components.
+- The introduction page (`src/content/docs/index.mdx`) uses `template: splash`.
+
+## Frontmatter template
+
+Every walkthrough page must start with:
+
+```mdx
+---
+title: <Page Title>
+description: <One sentence describing what this page covers.>
+draft: true        # Remove only when the page is ready to publish
+sidebar:
+  label: <Short label shown in the sidebar>
+---
+```
+
+Remove `draft: true` when the page is ready to go live. Draft pages are excluded from production builds (`npm run build`) but visible in dev (`npm run dev`).
+
+## MDX imports
+
+Always import components at the top of the file, after the frontmatter:
+
+```mdx
+import { Steps, Aside, Tabs, TabItem, FileTree, Badge, Card, CardGrid, LinkCard, LinkButton } from '@astrojs/starlight/components';
+import { Image } from 'astro:assets';
+import Checklist from '@/components/Checklist.astro';
+import Tooltip from '@/components/Tooltip.astro';
+```
+
+Only import what you actually use on that page.
+
+## Page structure for walkthrough pages
+
+Follow this order:
+
+1. **Checklist** — progress tracker at the top
+2. **Overview** heading — plain text intro with Tooltip terms
+3. **Repository layout** — optional FileTree showing relevant paths
+4. **Steps** — the actual procedure
+
+```mdx
+<Checklist id="<section>-<page>" items={['Step 1', 'Step 2']} />
+
+## Overview
+
+Text with <Tooltip term="s3files" /> inline terms.
+
+## Steps
+
+<Steps>
+1. Step one. <Badge text="Required" variant="tip" size="small" />
+   ...
+</Steps>
+```
+
+## MDX: JSX inside list items (e.g. inside `<Steps>`) — critical
+
+**This is the most common MDX bug in this repo.** Block-level JSX (`<Tabs>`, `<Aside>`, etc.) inside a step **must** be indented so the parser treats it as part of the list item. Wrong indentation causes: `Expected a closing tag for '<Tabs>' before the end of 'listItem'`.
+
+**Rule:** Indent the **entire** JSX block as list-item content. Use these levels consistently:
+
+| Level | Indentation | What |
+| ----- | ----------- | ---- |
+| Step content (code, text, `<Tabs>`) | **3 spaces** | Same as the step's body |
+| Inside `<Tabs>`: `<TabItem>`, `</TabItem>` | **5 spaces** | 3 + 2 |
+| Inside `<TabItem>`: code blocks, etc. | **6 spaces** | 3 + 3 |
+
+**Starlight `<Steps>` must render exactly one `<ol>`.** Markdown often starts a **second** list at item `10.` after items `1.`–`9.`, which produces multiple top-level nodes (`<ol>`, `<p>`, `<starlight-tabs>`, …) and triggers a build error. **Fix:** split into two `<Steps>` sections (restarting at `1.` in the second block) or use a single explicit HTML `<ol>` / fewer than ten markdown list items per `<Steps>`.
+
+## Checklist usage
+
+- `id` must be unique across the entire site. Use the pattern `<section>-<page>` (e.g. `ec2-mount`).
+- `items` should mirror the key outcomes of the page, not individual sub-steps.
+- Checklist state is saved in `localStorage` and persists across visits.
+
+## Tooltip usage
+
+- Use `<Tooltip term="s3files" />` for AWS/S3 Files abbreviations and jargon.
+- Terms are defined in `src/data/glossary.ts`. Add new terms there — do not inline definitions in page content.
+- Use the `term` key in lowercase (e.g. `term="nfs"`, `term="iam"`).
+- You can override the display text with the slot: `<Tooltip term="s3files">S3 Files</Tooltip>`.
+
+## Images
+
+- Store images under `src/assets/<section>/` (e.g. `src/assets/setup/iam-roles.png`).
+- Name files: lowercase, hyphenated, descriptive.
+- Reference with the `@/` alias and the `<Image>` component.
+
+## Expressive Code conventions
+
+Apply to all fenced code blocks:
+
+- Always add `title="filename.ext"` to code blocks that show file content.
+- Use `frame="terminal"` for shell commands.
+- Use `{line}` or `{start-end}` to highlight important lines.
+
+## Sidebar order
+
+**Never number file names.** Sidebar order is controlled entirely in `astro.config.mjs`.
+
+### Draft workflow — critical
+
+Starlight throws a build error if a sidebar `slug` references a page that is `draft: true`, because draft pages are excluded from production builds. The rule is:
+
+- **Do NOT add a page to the sidebar until it is published (draft removed).**
+- Pre-created draft pages live in the file system and are visible in `npm run dev`, but are not listed in the sidebar config until ready.
+
+### Publishing a page
+
+1. Write the content.
+2. When ready to publish: remove `draft: true` from the frontmatter.
+3. Uncomment or add the `slug` entry in the correct `items` array in `astro.config.mjs`.
+
+## Internal links and base path
+
+The site is built with `base: '/s3-files-workloads'` (see `astro.config.mjs`). All internal links to doc pages **must** include this base path so they work when deployed.
+
+- **Correct:** `[Setup](/s3-files-workloads/setup/)`
+- **Wrong:** `[Setup](/setup/)` (missing base; will break in production)
+
+## Default AWS region
+
+Always use `ap-southeast-6` (AWS Asia Pacific — New Zealand) as the example region in all docs, code blocks, config snippets, and CLI commands. Do not substitute other regions unless the user explicitly requests a different region.
+
+```bash frame="terminal"
+export AWS_REGION=ap-southeast-6
+```
+
+---
+
+_Update this rule when a new convention is adopted._

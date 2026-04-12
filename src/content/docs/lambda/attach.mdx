@@ -1,0 +1,175 @@
+---
+title: Lambda — Attach
+description: Create the Lambda function with VPC configuration and attach the S3 Files access point at /mnt/s3files.
+sidebar:
+  label: Attach
+---
+
+import { Steps, Aside, Badge } from '@astrojs/starlight/components';
+import Checklist from '@/components/Checklist.astro';
+
+<Checklist
+  id="lambda-attach"
+  items={[
+    'AP_ARN, COMPUTE_SG_ID, and LAMBDA_SUBNET_ID exported',
+    'Lambda role ARN resolved',
+    'AWSLambdaVPCAccessExecutionRole attached to the Lambda role',
+    'Lambda function created with VPC config',
+    'File system config attached (access point ARN, /mnt/s3files)',
+    'Function in Active state',
+  ]}
+/>
+
+## Overview
+
+This page creates a simple Python Lambda function, configures it to run inside the VPC, and mounts the S3 file system at `/mnt/s3files` using the access point from the previous step.
+
+<Steps>
+
+1. **Confirm base exports and resolve the Lambda role ARN.** <Badge text="Required" variant="tip" size="small" />
+
+   ```bash frame="terminal"
+   export AWS_REGION=ap-southeast-6
+   export ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+   export VPC_ID=vpc-0123456789abcdef0     # ← replace with your VPC ID
+   export FUNCTION_NAME=s3files-demo
+
+   # Resolve the Lambda role ARN by name
+   export LAMBDA_ROLE_ARN=$(aws iam get-role \
+     --role-name s3files-compute-role-lambda \
+     --query 'Role.Arn' \
+     --output text)
+   echo "LAMBDA_ROLE_ARN=$LAMBDA_ROLE_ARN"
+   ```
+
+2. **Resolve the compute security group and choose a subnet.** <Badge text="Required" variant="tip" size="small" />
+
+   The Lambda function must be in the same VPC as the mount targets. Use the compute security group from [Security Groups](/s3-files-workloads/lambda/setup/security-groups/) which already has the NFS egress rule to the mount target SG.
+
+   ```bash frame="terminal"
+   export COMPUTE_SG_ID=$(aws ec2 describe-security-groups \
+     --filters \
+       "Name=group-name,Values=s3files-lambda-compute-sg" \
+       "Name=vpc-id,Values=$VPC_ID" \
+     --region "$AWS_REGION" \
+     --query 'SecurityGroups[0].GroupId' \
+     --output text)
+   echo "COMPUTE_SG_ID=$COMPUTE_SG_ID"
+
+   export LAMBDA_SUBNET_ID=subnet-0123456789abcdef0   # ← subnet in the same AZ as a mount target
+   echo "LAMBDA_SUBNET_ID=$LAMBDA_SUBNET_ID"
+   ```
+
+   <Aside type="note">
+     The Lambda subnet must have a route to the mount targets on **port 2049 TCP**. A private subnet behind a NAT gateway (for HTTPS to Lambda APIs) works well. A subnet with an internet gateway route also works.
+   </Aside>
+
+3. **Attach `AWSLambdaVPCAccessExecutionRole` to the Lambda role.** <Badge text="Required" variant="tip" size="small" />
+
+   This allows Lambda to create and manage the ENI needed to run inside a VPC:
+
+   ```bash frame="terminal"
+   aws iam attach-role-policy \
+     --role-name s3files-compute-role-lambda \
+     --policy-arn arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
+   ```
+
+4. **Package the Lambda function code.** <Badge text="Required" variant="tip" size="small" />
+
+   Create a simple Python handler that lists the mounted file system:
+
+   ```bash frame="terminal"
+   mkdir -p /tmp/lambda-s3files
+
+   cat > /tmp/lambda-s3files/index.py <<'EOF'
+   import os
+
+   def handler(event, context):
+       path = '/mnt/s3files'
+       try:
+           entries = os.listdir(path)
+           print(f"Contents of {path}: {entries}")
+           return {'statusCode': 200, 'body': str(entries)}
+       except Exception as e:
+           return {'statusCode': 500, 'body': str(e)}
+   EOF
+
+   cd /tmp/lambda-s3files && zip lambda.zip index.py
+   ```
+
+5. **Create the Lambda function with VPC configuration.** <Badge text="Required" variant="tip" size="small" />
+
+   ```bash frame="terminal"
+   aws lambda create-function \
+     --function-name "$FUNCTION_NAME" \
+     --runtime python3.12 \
+     --role "$LAMBDA_ROLE_ARN" \
+     --handler index.handler \
+     --zip-file fileb:///tmp/lambda-s3files/lambda.zip \
+     --timeout 30 \
+     --vpc-config "SubnetIds=${LAMBDA_SUBNET_ID},SecurityGroupIds=${COMPUTE_SG_ID}" \
+     --region "$AWS_REGION"
+   ```
+
+   Wait for the function to become active:
+
+   ```bash frame="terminal"
+   aws lambda wait function-active \
+     --function-name "$FUNCTION_NAME" \
+     --region "$AWS_REGION"
+   echo "Function active"
+   ```
+
+6. **Attach the access point (file system config).** <Badge text="Required" variant="tip" size="small" />
+
+   If `AP_ARN` is not still set in your shell, resolve it:
+
+   ```bash frame="terminal"
+   export BUCKET=my-s3-files-bucket        # ← replace with your real bucket name
+   export BUCKET_ARN=arn:aws:s3:::${BUCKET}
+
+   export FS_ID=$(aws s3files list-file-systems \
+     --region "$AWS_REGION" \
+     --bucket "$BUCKET_ARN" \
+     --query 'fileSystems[0].fileSystemId' \
+     --output text)
+
+   export AP_ARN=$(aws s3files list-access-points \
+     --file-system-id "$FS_ID" \
+     --region "$AWS_REGION" \
+     --query 'accessPoints[0].accessPointArn' \
+     --output text)
+   echo "AP_ARN=$AP_ARN"
+   ```
+
+   Update the function with the file system config:
+
+   ```bash frame="terminal"
+   aws lambda update-function-configuration \
+     --function-name "$FUNCTION_NAME" \
+     --file-system-configs "Arn=${AP_ARN},LocalMountPath=/mnt/s3files" \
+     --region "$AWS_REGION"
+
+   aws lambda wait function-updated \
+     --function-name "$FUNCTION_NAME" \
+     --region "$AWS_REGION"
+   echo "File system config attached"
+   ```
+
+7. **Verify the function configuration.** <Badge text="Required" variant="tip" size="small" />
+
+   ```bash frame="terminal"
+   aws lambda get-function-configuration \
+     --function-name "$FUNCTION_NAME" \
+     --region "$AWS_REGION" \
+     --query '{State:State,VpcId:VpcConfig.VpcId,FileSystem:FileSystemConfigs[0].Arn}' \
+     --output table
+   ```
+
+   `State` must be `Active`, and `FileSystem` must show the access point ARN.
+
+</Steps>
+
+## Next step
+
+Continue to [Verify](/s3-files-workloads/lambda/verify/) to invoke the function and confirm the file system is accessible.

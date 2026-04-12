@@ -1,0 +1,90 @@
+---
+title: Lambda — Access Point
+description: Create an S3 Files access point with a /lambda root directory and POSIX UID/GID 1000 for use with a Lambda function.
+sidebar:
+  label: Access Point
+---
+
+import { Steps, Aside, Badge } from '@astrojs/starlight/components';
+import Checklist from '@/components/Checklist.astro';
+
+<Checklist
+  id="lambda-access-point"
+  items={[
+    'Base exports confirmed (AWS_REGION, BUCKET, BUCKET_ARN, FS_ID)',
+    'Access point created with root directory /lambda and POSIX UID/GID 1000',
+    'AP_ID and AP_ARN exported',
+    'Access point listed as available',
+  ]}
+/>
+
+## Overview
+
+Lambda cannot mount an S3 Files file system directly by file system ID — an **access point** is required. The access point sets the root directory the function sees at `/mnt/s3files` and the POSIX identity under which files are created.
+
+<Steps>
+
+1. **Confirm base exports.** <Badge text="Required" variant="tip" size="small" />
+
+   ```bash frame="terminal"
+   export AWS_REGION=ap-southeast-6
+   export ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+   export BUCKET=my-s3-files-bucket        # ← replace with your real bucket name
+   export BUCKET_ARN=arn:aws:s3:::${BUCKET}
+
+   export FS_ID=$(aws s3files list-file-systems \
+     --region "$AWS_REGION" \
+     --bucket "$BUCKET_ARN" \
+     --query 'fileSystems[0].fileSystemId' \
+     --output text)
+   echo "FS_ID=$FS_ID"
+   ```
+
+   `FS_ID` must be `fs-…`. If it is `None`, complete [File System](/s3-files-workloads/lambda/setup/filesystem/) first.
+
+2. **Create the access point.** <Badge text="Required" variant="tip" size="small" />
+
+   ```bash frame="terminal"
+   export AP_ARN=$(aws s3files create-access-point \
+     --file-system-id "$FS_ID" \
+     --client-token "lambda-ap-$(date +%s)" \
+     --posix-user "Uid=1000,Gid=1000" \
+     --root-directory "Path=/lambda,CreationInfo={OwnerUid=1000,OwnerGid=1000,Permissions=755}" \
+     --region "$AWS_REGION" \
+     --query 'accessPoint.accessPointArn' \
+     --output text)
+   echo "AP_ARN=$AP_ARN"
+   ```
+
+   <Aside type="note">
+     `--client-token` ensures idempotency. If you re-run this command with the same token, the existing access point is returned rather than creating a duplicate.
+   </Aside>
+
+3. **Resolve the access point ID.** <Badge text="Required" variant="tip" size="small" />
+
+   ```bash frame="terminal"
+   export AP_ID=$(aws s3files list-access-points \
+     --file-system-id "$FS_ID" \
+     --region "$AWS_REGION" \
+     --query 'accessPoints[0].accessPointId' \
+     --output text)
+   echo "AP_ID=$AP_ID"
+   ```
+
+4. **Confirm the access point is available.** <Badge text="Required" variant="tip" size="small" />
+
+   ```bash frame="terminal"
+   aws s3files list-access-points \
+     --file-system-id "$FS_ID" \
+     --region "$AWS_REGION" \
+     --query 'accessPoints[*].{Id:accessPointId,State:lifeCycleState,Root:rootDirectory.path}' \
+     --output table
+   ```
+
+   The `State` column must show `available`.
+
+</Steps>
+
+## Next step
+
+Continue to [Attach](/s3-files-workloads/lambda/attach/) to create the Lambda function and attach the access point.

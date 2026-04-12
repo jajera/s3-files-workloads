@@ -1,0 +1,287 @@
+---
+title: Teardown
+description: Remove all EC2 walkthrough resources — instance, security groups, mount targets, file system, IAM roles, and optionally the S3 bucket.
+sidebar:
+  label: Teardown
+---
+
+import { Steps, Aside, Badge } from '@astrojs/starlight/components';
+import Checklist from '@/components/Checklist.astro';
+
+<Checklist
+  id="ec2-teardown"
+  items={[
+    'Instance unmounted and /etc/fstab cleaned',
+    'EC2 instance terminated',
+    'Compute security group deleted',
+    'Mount targets deleted',
+    'File system deleted',
+    'IAM roles and instance profile deleted',
+    'Mount target security group deleted',
+    'S3 bucket emptied and deleted (optional)',
+  ]}
+/>
+
+## Overview
+
+This page tears down everything created in the EC2 walkthrough, in dependency order: instance → security groups → mount targets → file system → IAM → mount target SG → bucket (optional).
+
+<Steps>
+
+1. **Set environment variables.** <Badge text="Required" variant="tip" size="small" />
+
+   Re-run these in your current shell. Replace values to match what you created:
+
+   ```bash frame="terminal"
+   export AWS_REGION=ap-southeast-6
+   export BUCKET=my-s3-files-bucket        # ← replace with your real bucket name
+   export BUCKET_ARN=arn:aws:s3:::${BUCKET}
+   export ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+   export VPC_ID=vpc-0123456789abcdef0     # ← replace with your VPC ID
+
+   export FS_ID=$(aws s3files list-file-systems \
+     --region $AWS_REGION \
+     --bucket $BUCKET_ARN \
+     --query 'fileSystems[0].fileSystemId' \
+     --output text)
+   echo "FS_ID=$FS_ID  Account: $ACCOUNT_ID"
+   ```
+
+2. **Unmount and clean `/etc/fstab` on the instance.**
+
+   Connect via Session Manager, then inside the session:
+
+   ```bash frame="terminal"
+   sudo umount /mnt/s3files
+   sudo sed -i '/s3files/d' /etc/fstab
+   exit
+   ```
+
+   If the instance is already terminated or unreachable, skip this step.
+
+3. **Terminate the EC2 instance.** <Badge text="Required" variant="tip" size="small" />
+
+   Look up the instance ID by name tag and terminate it:
+
+   ```bash frame="terminal"
+   INSTANCE_ID=$(aws ec2 describe-instances \
+     --filters "Name=tag:Name,Values=s3files-ec2-demo" \
+               "Name=instance-state-name,Values=running,stopped" \
+     --query 'Reservations[0].Instances[0].InstanceId' \
+     --output text \
+     --region $AWS_REGION)
+   echo "Instance: $INSTANCE_ID"
+
+   aws ec2 terminate-instances \
+     --instance-ids $INSTANCE_ID \
+     --region $AWS_REGION
+   ```
+
+   Wait for `terminated` state:
+
+   ```bash frame="terminal"
+   aws ec2 wait instance-terminated \
+     --instance-ids $INSTANCE_ID \
+     --region $AWS_REGION
+   echo "Instance terminated"
+   ```
+
+4. **Delete the compute security group.** <Badge text="Required" variant="tip" size="small" />
+
+   The compute SG must be deleted before the mount target SG (which has an inbound rule referencing it).
+
+   ```bash frame="terminal"
+   COMPUTE_SG_ID=$(aws ec2 describe-security-groups \
+     --filters "Name=group-name,Values=s3files-ec2-compute-sg" \
+               "Name=vpc-id,Values=$VPC_ID" \
+     --region $AWS_REGION \
+     --query 'SecurityGroups[0].GroupId' \
+     --output text)
+   echo "COMPUTE_SG_ID=$COMPUTE_SG_ID"
+
+   aws ec2 delete-security-group \
+     --group-id $COMPUTE_SG_ID \
+     --region $AWS_REGION
+   echo "Compute SG deleted"
+   ```
+
+   <Aside type="note">
+     If the instance is still terminating and holds an ENI attached to the SG, `delete-security-group` will return `DependencyViolation`. Wait for the instance to reach `terminated` state (step 3 wait) before retrying.
+   </Aside>
+
+5. **Delete all mount targets.** <Badge text="Required" variant="tip" size="small" />
+
+   The file system cannot be deleted while mount targets exist.
+
+   ```bash frame="terminal"
+   MT_IDS=$(aws s3files list-mount-targets \
+     --region $AWS_REGION \
+     --file-system-id $FS_ID \
+     --query 'mountTargets[*].mountTargetId' \
+     --output text)
+   echo "Mount targets: $MT_IDS"
+
+   for MT_ID in $MT_IDS; do
+     aws s3files delete-mount-target \
+       --region $AWS_REGION \
+       --mount-target-id $MT_ID
+     echo "Deleted mount target $MT_ID"
+   done
+   ```
+
+   Wait until the list is empty:
+
+   ```bash frame="terminal"
+   until [ "$(aws s3files list-mount-targets \
+     --region $AWS_REGION \
+     --file-system-id $FS_ID \
+     --query 'length(mountTargets)' \
+     --output text)" = "0" ]; do
+     echo "Waiting for mount targets to delete…"
+     sleep 10
+   done
+   echo "All mount targets deleted"
+   ```
+
+6. **Delete the file system.** <Badge text="Required" variant="tip" size="small" />
+
+   ```bash frame="terminal"
+   aws s3files delete-file-system \
+     --region $AWS_REGION \
+     --file-system-id $FS_ID
+   echo "File system deletion initiated"
+   ```
+
+   Confirm deletion:
+
+   ```bash frame="terminal"
+   aws s3files list-file-systems \
+     --region $AWS_REGION \
+     --bucket $BUCKET_ARN \
+     --query 'fileSystems[*].{id:fileSystemId,status:status}' \
+     --output table
+   ```
+
+7. **Delete IAM roles and instance profile.** <Badge text="Required" variant="tip" size="small" />
+
+   Remove the role from the instance profile first, then delete in dependency order:
+
+   ```bash frame="terminal"
+   aws iam remove-role-from-instance-profile \
+     --instance-profile-name s3files-ec2-instance-profile \
+     --role-name s3files-compute-role-ec2
+
+   aws iam delete-instance-profile \
+     --instance-profile-name s3files-ec2-instance-profile
+   ```
+
+   Detach managed policies from the EC2 compute role:
+
+   ```bash frame="terminal"
+   aws iam detach-role-policy \
+     --role-name s3files-compute-role-ec2 \
+     --policy-arn arn:aws:iam::aws:policy/AmazonS3FilesClientFullAccess
+
+   aws iam detach-role-policy \
+     --role-name s3files-compute-role-ec2 \
+     --policy-arn arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+   ```
+
+   Delete the inline policy, then the EC2 compute role:
+
+   ```bash frame="terminal"
+   aws iam delete-role-policy \
+     --role-name s3files-compute-role-ec2 \
+     --policy-name S3FilesComputeS3ReadPolicy
+
+   aws iam delete-role --role-name s3files-compute-role-ec2
+   echo "EC2 compute role deleted"
+   ```
+
+   Detach managed policies from the file system role:
+
+   ```bash frame="terminal"
+   aws iam delete-role-policy \
+     --role-name s3files-filesystem-role \
+     --policy-name S3FilesFileSystemPolicy
+
+   aws iam delete-role --role-name s3files-filesystem-role
+   echo "File system role deleted"
+   ```
+
+8. **Delete the mount target security group.** <Badge text="Required" variant="tip" size="small" />
+
+   Now that mount targets and compute resources are gone, the mount target SG has no active references:
+
+   ```bash frame="terminal"
+   MT_SG_ID=$(aws ec2 describe-security-groups \
+     --filters "Name=group-name,Values=s3files-mount-target-sg" \
+               "Name=vpc-id,Values=$VPC_ID" \
+     --region $AWS_REGION \
+     --query 'SecurityGroups[0].GroupId' \
+     --output text)
+   echo "MT_SG_ID=$MT_SG_ID"
+
+   aws ec2 delete-security-group \
+     --group-id $MT_SG_ID \
+     --region $AWS_REGION
+   echo "Mount target SG deleted"
+   ```
+
+9. **Empty and delete the S3 bucket (optional).**
+
+   <Aside type="caution">
+     This permanently deletes all objects and their versions. It cannot be undone.
+   </Aside>
+
+   Delete all versioned objects:
+
+   ```bash frame="terminal"
+   aws s3api list-object-versions \
+     --bucket $BUCKET \
+     --output json \
+     --query '{Objects: Versions[].{Key:Key,VersionId:VersionId}}' \
+     | jq -c '.Objects // [] | _nwise(1000) | {Objects: ., Quiet: true}' \
+     | while read batch; do
+         aws s3api delete-objects --bucket $BUCKET --delete "$batch"
+       done
+   ```
+
+   Delete all delete markers:
+
+   ```bash frame="terminal"
+   aws s3api list-object-versions \
+     --bucket $BUCKET \
+     --output json \
+     --query '{Objects: DeleteMarkers[].{Key:Key,VersionId:VersionId}}' \
+     | jq -c '.Objects // [] | _nwise(1000) | {Objects: ., Quiet: true}' \
+     | while read batch; do
+         aws s3api delete-objects --bucket $BUCKET --delete "$batch"
+       done
+   ```
+
+   Delete any incomplete multipart uploads:
+
+   ```bash frame="terminal"
+   aws s3api list-multipart-uploads --bucket $BUCKET \
+     --query 'Uploads[*].{Key:Key,UploadId:UploadId}' \
+     --output json \
+     | jq -r '.[] | "\(.Key) \(.UploadId)"' \
+     | while read key upload_id; do
+         aws s3api abort-multipart-upload \
+           --bucket $BUCKET --key "$key" --upload-id "$upload_id"
+       done
+   ```
+
+   Delete the bucket:
+
+   ```bash frame="terminal"
+   aws s3api delete-bucket --bucket $BUCKET --region $AWS_REGION
+   echo "Bucket $BUCKET deleted"
+   ```
+
+</Steps>
+
+## Done
+
+All EC2 walkthrough resources have been removed.

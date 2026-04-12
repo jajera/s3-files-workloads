@@ -1,0 +1,159 @@
+/* Splash page: hero buttons and card grid — cleaner, aligned layout */
+
+/* Hero action buttons: larger, clearer hierarchy, subtle hover */
+.hero .actions .sl-link-button {
+  font-weight: 600;
+  border-radius: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.hero .actions .sl-link-button.primary {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.hero .actions .sl-link-button.primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+.hero .actions .sl-link-button.secondary {
+  background: rgba(255, 255, 255, 0.06);
+  border-width: 1.5px;
+}
+
+.hero .actions .sl-link-button.secondary:hover {
+  background: rgba(255, 255, 255, 0.1);
+  transform: translateY(-1px);
+}
+
+/* Card grid (splash only): strict 2x2 alignment, no stagger */
+[data-has-hero] .card-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.25rem;
+  align-items: stretch;
+}
+
+@media (min-width: 50rem) {
+  [data-has-hero] .card-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+  }
+
+  [data-has-hero] .card-grid > * {
+    transform: none;
+  }
+}
+
+/* Card tiles: consistent height and padding */
+[data-has-hero] .card-grid :global(.sl-card) {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 1.25rem 1.5rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--sl-color-gray-5);
+}
+
+[data-has-hero] .card-grid :global(.sl-card) :global(h3) {
+  margin-top: 0;
+  margin-bottom: 0.5rem;
+}
+
+[data-has-hero] .card-grid :global(.sl-card) :global(p) {
+  flex: 1;
+  margin-bottom: 0;
+  color: var(--sl-color-gray-2);
+}
+
+/* ===== Aside and code block overrides (clearer than theme default) ===== */
+
+/* Caution aside: clearer amber warning, better contrast in light and dark */
+.starlight-aside--caution {
+  --sl-color-asides-border: oklch(0.75 0.15 75);
+  --sl-color-asides-text-accent: oklch(0.82 0.14 75);
+  background-color: oklch(0.25 0.03 75 / 0.5);
+  border-inline-start-width: 4px;
+}
+
+[data-theme='light'] .starlight-aside--caution {
+  --sl-color-asides-border: oklch(0.55 0.18 75);
+  --sl-color-asides-text-accent: oklch(0.45 0.12 75);
+  background-color: oklch(0.97 0.02 75);
+}
+
+/* Code blocks inside content: slightly softer frame so they don't clash with asides */
+.sl-markdown-content [data-ec-frame="terminal"] {
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+.sl-markdown-content [data-ec-frame="terminal"] [data-ec-frame-bar] {
+  background-color: var(--sl-color-gray-6);
+  color: var(--sl-color-gray-2);
+  border-bottom: 1px solid var(--sl-color-gray-5);
+}
+
+[data-theme='light'] .sl-markdown-content [data-ec-frame="terminal"] [data-ec-frame-bar] {
+  background-color: var(--sl-color-gray-5);
+  color: var(--sl-color-gray-2);
+}
+
+/* Wide tables (e.g. Terraform variables): scroll horizontally instead of crushing columns inside Steps/lists */
+.sl-markdown-content .wide-table-wrap {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin-block: 1rem;
+}
+
+.sl-markdown-content .wide-table-wrap table {
+  width: max(100%, 52rem);
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.sl-markdown-content .wide-table-wrap th,
+.sl-markdown-content .wide-table-wrap td {
+  padding: 0.5rem 0.75rem;
+  vertical-align: top;
+  text-align: start;
+  word-break: normal;
+  overflow-wrap: break-word;
+}
+
+.sl-markdown-content .wide-table-wrap th:nth-child(1),
+.sl-markdown-content .wide-table-wrap td:nth-child(1) {
+  width: 14%;
+}
+
+.sl-markdown-content .wide-table-wrap th:nth-child(2),
+.sl-markdown-content .wide-table-wrap td:nth-child(2) {
+  width: 30%;
+}
+
+.sl-markdown-content .wide-table-wrap th:nth-child(3),
+.sl-markdown-content .wide-table-wrap td:nth-child(3) {
+  width: 8%;
+  white-space: nowrap;
+}
+
+.sl-markdown-content .wide-table-wrap th:nth-child(4),
+.sl-markdown-content .wide-table-wrap td:nth-child(4) {
+  width: 48%;
+}
+
+/*
+ * Starlight caps article text at --sl-content-width (45rem when the nav sidebar is shown).
+ * Grow the main column on wide viewports so tables and long lines use available space.
+ * Pages without a sidebar already get 67.5rem from Starlight — do not override those.
+ */
+@media (min-width: 72rem) {
+  :root[data-has-sidebar] {
+    --sl-content-width: clamp(45rem, 50vi + 14rem, 76rem);
+  }
+}

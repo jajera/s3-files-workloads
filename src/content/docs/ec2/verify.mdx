@@ -1,0 +1,88 @@
+---
+title: EC2 — Verify
+description: Confirm the S3 file system is mounted and test read/write access from the EC2 instance.
+sidebar:
+  label: Verify
+---
+
+import { Steps, Aside, Badge } from '@astrojs/starlight/components';
+import Checklist from '@/components/Checklist.astro';
+
+<Checklist
+  id="ec2-verify"
+  items={[
+    'df -h shows the file system mounted at /mnt/s3files',
+    'findmnt confirms the s3files mount type',
+    'Write test passed — file created at /mnt/s3files/test.txt',
+    'Read back confirmed',
+    'Object visible in S3 bucket (confirmed from workstation)',
+  ]}
+/>
+
+## Overview
+
+Run these commands **inside the SSM session on the EC2 instance** unless the step says otherwise.
+
+<Steps>
+
+1. **Check the mount with `df`.** <Badge text="Required" variant="tip" size="small" />
+
+   ```bash frame="terminal"
+   df -h /mnt/s3files
+   ```
+
+   Expected output shows a filesystem entry for `s3files`:
+
+   ```
+   Filesystem      Size  Used Avail Use% Mounted on
+   fs-…:/          8.0E     0  8.0E   0% /mnt/s3files
+   ```
+
+2. **Confirm the mount type with `findmnt`.** <Badge text="Required" variant="tip" size="small" />
+
+   ```bash frame="terminal"
+   findmnt -T /mnt/s3files
+   ```
+
+   The `FSTYPE` column must show `s3files`.
+
+3. **Write a test file.** <Badge text="Required" variant="tip" size="small" />
+
+   ```bash frame="terminal"
+   echo "hello from ec2 $(date -u)" > /mnt/s3files/test.txt
+   cat /mnt/s3files/test.txt
+   ```
+
+   The file should echo back immediately.
+
+4. **List the directory contents.** <Badge text="Required" variant="tip" size="small" />
+
+   ```bash frame="terminal"
+   ls -la /mnt/s3files/
+   ```
+
+5. **Exit the SSM session.** <Badge text="Required" variant="tip" size="small" />
+
+   ```bash frame="terminal"
+   exit
+   ```
+
+6. **Confirm the object appears in S3 (from your workstation).** <Badge text="Required" variant="tip" size="small" />
+
+   Run on your workstation (not in the SSM session):
+
+   ```bash frame="terminal"
+   aws s3 ls "s3://${BUCKET}/" --region "$AWS_REGION"
+   ```
+
+   <Aside type="note">
+     S3 Files syncs the file system to S3 asynchronously. The object may take a few seconds to appear in the bucket listing after it is written on the instance.
+   </Aside>
+
+   The `test.txt` object should be listed.
+
+</Steps>
+
+## Next step
+
+When you are finished, run [Teardown](/s3-files-workloads/ec2/teardown/) to terminate the instance and clean up all resources.

@@ -1,0 +1,113 @@
+---
+title: EC2 — Mount
+description: Install amazon-efs-utils on the EC2 instance and mount the S3 file system at /mnt/s3files using mount -t s3files.
+sidebar:
+  label: Mount
+---
+
+import { Steps, Aside, Badge } from '@astrojs/starlight/components';
+import Checklist from '@/components/Checklist.astro';
+
+<Checklist
+  id="ec2-mount"
+  items={[
+    'Connected to the instance via SSM Session Manager',
+    'amazon-efs-utils v3.0.0 or newer installed',
+    'Mount point /mnt/s3files created',
+    'File system mounted with mount -t s3files',
+    '/etc/fstab entry added for persistence across reboots',
+  ]}
+/>
+
+## Overview
+
+Run all commands in this page **inside the SSM session on the EC2 instance**. Start a session from your workstation if not already connected:
+
+```bash frame="terminal"
+aws ssm start-session \
+  --target "$INSTANCE_ID" \
+  --region "$AWS_REGION"
+```
+
+<Steps>
+
+1. **Install `amazon-efs-utils` v3.0.0 or newer.** <Badge text="Required" variant="tip" size="small" />
+
+   S3 Files requires the updated `amazon-efs-utils` package that ships with the `s3files` mount type support. Run on the instance:
+
+   ```bash frame="terminal"
+   sudo dnf install -y amazon-efs-utils
+   ```
+
+   Confirm the installed version is 3.0.0 or newer:
+
+   ```bash frame="terminal"
+   rpm -q amazon-efs-utils
+   ```
+
+   <Aside type="caution">
+     The `mount -t s3files` helper is only available in `amazon-efs-utils` **v3.0.0+**. Earlier versions ship with EFS-only support. If the `dnf` version is too old, update the package index first: `sudo dnf update -y amazon-efs-utils`.
+   </Aside>
+
+2. **Set the file system ID in the session.** <Badge text="Required" variant="tip" size="small" />
+
+   Export `FS_ID` inside the SSM session so the mount command can reference it:
+
+   ```bash frame="terminal"
+   export FS_ID=fs-0123456789abcdef0   # ← replace with the ID from Setup
+   echo "FS_ID=$FS_ID"
+   ```
+
+   <Aside type="tip">
+     Your `FS_ID` was printed during [File System](/s3-files-workloads/ec2/setup/filesystem/) setup. If you have lost it, run the following **on your workstation** (not in the SSM session):
+     ```bash frame="terminal"
+     aws s3files list-file-systems \
+       --bucket "arn:aws:s3:::${BUCKET}" \
+       --region "$AWS_REGION" \
+       --query 'fileSystems[0].fileSystemId' \
+       --output text
+     ```
+   </Aside>
+
+3. **Create the mount point.** <Badge text="Required" variant="tip" size="small" />
+
+   ```bash frame="terminal"
+   sudo mkdir -p /mnt/s3files
+   ```
+
+4. **Mount the file system.** <Badge text="Required" variant="tip" size="small" />
+
+   ```bash frame="terminal"
+   sudo mount -t s3files "${FS_ID}:/" /mnt/s3files
+   ```
+
+   <Aside type="note">
+     The mount may take 10–30 seconds while the NFS connection is established with the mount target. If it hangs for more than 60 seconds, check that port 2049 TCP is open between the compute and mount target security groups (see [Security Groups](/s3-files-workloads/ec2/setup/security-groups/)).
+   </Aside>
+
+   Allow the `ssm-user` to read the mount root without sudo:
+
+   ```bash frame="terminal"
+   sudo chmod 755 /mnt/s3files
+   ```
+
+5. **Add a persistent fstab entry.** <Badge text="Required" variant="tip" size="small" />
+
+   This ensures the file system remounts automatically after a reboot:
+
+   ```bash frame="terminal"
+   echo "${FS_ID}:/ /mnt/s3files s3files _netdev,noresvport 0 0" \
+     | sudo tee -a /etc/fstab
+   ```
+
+   Verify the entry was written correctly:
+
+   ```bash frame="terminal"
+   grep s3files /etc/fstab
+   ```
+
+</Steps>
+
+## Next step
+
+Continue to [Verify](/s3-files-workloads/ec2/verify/) to confirm the mount and test read/write access.

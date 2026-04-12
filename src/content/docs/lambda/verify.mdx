@@ -1,0 +1,101 @@
+---
+title: Lambda — Verify
+description: Invoke the Lambda function and confirm it can list the contents of /mnt/s3files via the access point.
+sidebar:
+  label: Verify
+---
+
+import { Steps, Aside, Badge } from '@astrojs/starlight/components';
+import Checklist from '@/components/Checklist.astro';
+
+<Checklist
+  id="lambda-verify"
+  items={[
+    'Lambda function invoked with exit code 200',
+    '/mnt/s3files listing returned in the response body',
+    'CloudWatch logs confirm the function ran without errors',
+  ]}
+/>
+
+## Overview
+
+Invoke the function and read the JSON response to confirm the file system is mounted and accessible at `/mnt/s3files`.
+
+<Steps>
+
+1. **Confirm base exports.** <Badge text="Required" variant="tip" size="small" />
+
+   ```bash frame="terminal"
+   export AWS_REGION=ap-southeast-6
+   export FUNCTION_NAME=s3files-demo
+   ```
+
+2. **Invoke the function.** <Badge text="Required" variant="tip" size="small" />
+
+   ```bash frame="terminal"
+   aws lambda invoke \
+     --function-name "$FUNCTION_NAME" \
+     --region "$AWS_REGION" \
+     --payload '{}' \
+     /tmp/lambda-response.json \
+   && cat /tmp/lambda-response.json
+   ```
+
+   Expected response:
+
+   ```json
+   {"statusCode": 200, "body": "[]"}
+   ```
+
+   An empty list `[]` is correct for a newly created file system. The function successfully listed `/mnt/s3files`.
+
+   <Aside type="note">
+     If the first invocation returns a **timeout** or **mount error**, the mount target may still be establishing the NFS connection. Wait 60 seconds and retry. Cold-start Lambda invocations with VPC + file system configs can take 10–30 seconds on the first call.
+   </Aside>
+
+   <Aside type="tip">
+     If the response body contains `[Errno 13] Permission denied`, the access point POSIX UID/GID (1000) does not match the file system root permissions. Confirm that the access point was created with `OwnerUid=1000,OwnerGid=1000,Permissions=755` in [Access Point](/s3-files-workloads/lambda/access-point/).
+   </Aside>
+
+3. **Write an object via S3 and invoke again.** <Badge text="Required" variant="tip" size="small" />
+
+   Write a file directly to the S3 bucket at the path the access point exposes (`/lambda/`):
+
+   ```bash frame="terminal"
+   export BUCKET=my-s3-files-bucket   # ← replace with your real bucket name
+
+   aws s3 cp /dev/stdin \
+     "s3://${BUCKET}/lambda/hello.txt" \
+     --content-type text/plain \
+     --region "$AWS_REGION" <<< "hello from lambda walkthrough"
+   ```
+
+   Invoke the function again:
+
+   ```bash frame="terminal"
+   aws lambda invoke \
+     --function-name "$FUNCTION_NAME" \
+     --region "$AWS_REGION" \
+     --payload '{}' \
+     /tmp/lambda-response.json \
+   && cat /tmp/lambda-response.json
+   ```
+
+   The response body should now list `['hello.txt']`.
+
+4. **Check CloudWatch Logs.** <Badge text="Required" variant="tip" size="small" />
+
+   ```bash frame="terminal"
+   aws logs tail \
+     "/aws/lambda/${FUNCTION_NAME}" \
+     --since 5m \
+     --region "$AWS_REGION"
+   ```
+
+   Look for a log line like `Contents of /mnt/s3files: ['hello.txt']`.
+
+</Steps>
+
+## Next step
+
+When you are finished, run [Teardown](/s3-files-workloads/lambda/teardown/) to remove the file system config, delete access points, and clean up all resources.

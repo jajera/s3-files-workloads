@@ -1,0 +1,125 @@
+---
+title: Security Groups
+description: Create the Lambda compute security group and open port 2049 TCP between it and the S3 Files mount target security group.
+sidebar:
+  label: Security Groups
+---
+
+import { Steps, Aside, Badge } from '@astrojs/starlight/components';
+import Checklist from '@/components/Checklist.astro';
+import Tooltip from '@/components/Tooltip.astro';
+
+<Checklist
+  id="lambda-setup-security-groups"
+  items={[
+    'Base exports confirmed (AWS_REGION, VPC_ID, MT_SG_ID)',
+    'Compute security group s3files-lambda-compute-sg created; COMPUTE_SG_ID exported',
+    'Outbound NFS on compute SG (port 2049 to mount target SG)',
+    'Inbound NFS on mount target SG (port 2049 from compute SG)',
+  ]}
+/>
+
+## Overview
+
+<Tooltip term="s3files" /> uses <Tooltip term="nfs" /> over port 2049 TCP. This page **creates** the Lambda compute security group **`s3files-lambda-compute-sg`**, stores its ID in **`COMPUTE_SG_ID`**, and adds the paired rules with **`MT_SG_ID`** from [Mount Targets](/s3-files-workloads/lambda/setup/mount-targets/). The [Access Point](/s3-files-workloads/lambda/access-point/) page **looks up that same group by name** — it does not invent a new SG variable.
+
+<Steps>
+
+1. **Confirm base exports.** <Badge text="Required" variant="tip" size="small" />
+
+   Re-run these in your current shell. Replace `VPC_ID` with your VPC; `MT_SG_ID` is looked up by name from the group created in [Mount Targets](/s3-files-workloads/lambda/setup/mount-targets/).
+
+   ```bash frame="terminal"
+   export AWS_REGION=ap-southeast-6
+   export VPC_ID=vpc-0123456789abcdef0   # replace with your VPC ID
+
+   export MT_SG_ID=$(aws ec2 describe-security-groups \
+     --filters "Name=group-name,Values=s3files-mount-target-sg" \
+               "Name=vpc-id,Values=$VPC_ID" \
+     --region $AWS_REGION \
+     --query 'SecurityGroups[0].GroupId' \
+     --output text)
+   echo "MT_SG_ID=$MT_SG_ID"
+   ```
+
+   If `MT_SG_ID` is empty, complete [Mount Targets](/s3-files-workloads/lambda/setup/mount-targets/) first.
+
+2. **Create the compute security group and capture its ID.** <Badge text="Required" variant="tip" size="small" />
+
+   Fixed name **`s3files-lambda-compute-sg`** so the rest of the Lambda walkthrough can resolve **`COMPUTE_SG_ID`** without placeholders.
+
+   ```bash frame="terminal"
+   export COMPUTE_SG_ID=$(aws ec2 create-security-group \
+     --group-name s3files-lambda-compute-sg \
+     --description "S3 Files Lambda walkthrough - compute (NFS to mount targets)" \
+     --vpc-id $VPC_ID \
+     --region $AWS_REGION \
+     --query GroupId \
+     --output text)
+   echo "COMPUTE_SG_ID=$COMPUTE_SG_ID"
+   ```
+
+   <Aside type="tip">
+     If **`Resource.AlreadyExists`** appears, the group already exists. Resolve the ID instead:  
+     `aws ec2 describe-security-groups --filters "Name=group-name,Values=s3files-lambda-compute-sg" "Name=vpc-id,Values=$VPC_ID" --region $AWS_REGION --query 'SecurityGroups[0].GroupId' --output text`
+   </Aside>
+
+3. **Allow outbound NFS from the compute security group.** <Badge text="Required" variant="tip" size="small" />
+
+   ```bash frame="terminal"
+   aws ec2 authorize-security-group-egress \
+     --group-id $COMPUTE_SG_ID \
+     --protocol tcp \
+     --port 2049 \
+     --source-group $MT_SG_ID \
+     --region $AWS_REGION
+   ```
+
+4. **Allow inbound NFS on the mount target security group.** <Badge text="Required" variant="tip" size="small" />
+
+   ```bash frame="terminal"
+   aws ec2 authorize-security-group-ingress \
+     --group-id $MT_SG_ID \
+     --protocol tcp \
+     --port 2049 \
+     --source-group $COMPUTE_SG_ID \
+     --region $AWS_REGION
+   ```
+
+5. **Verify the rules.**
+
+   Outbound on compute SG:
+
+   ```bash frame="terminal"
+   aws ec2 describe-security-group-rules \
+     --filters "Name=group-id,Values=$COMPUTE_SG_ID" \
+     --query 'SecurityGroupRules[?IsEgress==`true` && ToPort==`2049`].{Port:ToPort,Dest:ReferencedGroupInfo.GroupId}' \
+     --output table \
+     --region $AWS_REGION
+   ```
+
+   Inbound on mount target SG:
+
+   ```bash frame="terminal"
+   aws ec2 describe-security-group-rules \
+     --filters "Name=group-id,Values=$MT_SG_ID" \
+     --query 'SecurityGroupRules[?IsEgress==`false` && ToPort==`2049`].{Port:ToPort,Source:ReferencedGroupInfo.GroupId}' \
+     --output table \
+     --region $AWS_REGION
+   ```
+
+   Both queries should return one row each showing port `2049` and the correct SG reference.
+
+</Steps>
+
+## Setup complete
+
+You now have a fully configured S3 Files environment for Lambda:
+
+- S3 bucket with versioning and encryption
+- S3 Files file system linked to the bucket
+- Mount targets in each Availability Zone
+- Two IAM roles (file system + Lambda execution)
+- Security group rules on port 2049
+
+Continue to [Access Point](/s3-files-workloads/lambda/access-point/) to create the S3 Files access point required for Lambda.

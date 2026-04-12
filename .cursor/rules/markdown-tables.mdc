@@ -1,0 +1,26 @@
+---
+description: Markdown table separator row format — spaces between pipes and dashes required (all tables, all files).
+globs:
+  - "**/*.md"
+  - "**/*.mdx"
+  - "**/*.mdc"
+alwaysApply: false
+---
+
+# Markdown table separator format
+
+Applies to **all** Markdown tables in this project, in any file (docs, rules, README, etc.).
+
+## Rule
+
+Table separator rows **must** have a space between each pipe (`|`) and the dashes. No exceptions.
+
+```markdown
+❌ Wrong (no spaces — will be flagged)
+|-----------|-----------|-------|
+
+✅ Correct (space between | and dashes — required)
+| --------- | --------- | ----- |
+```
+
+When creating or editing a table, always use the spaced separator row. Fix any existing tables that use the wrong format.
