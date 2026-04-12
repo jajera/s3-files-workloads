@@ -1,5 +1,7 @@
 # s3-files-workloads
 
+[![Deploy](https://github.com/jajera/s3-files-workloads/actions/workflows/deploy.yml/badge.svg?branch=main)](https://github.com/jajera/s3-files-workloads/actions/workflows/deploy.yml)
+
 Documentation for [Amazon S3 Files](https://docs.aws.amazon.com/AmazonS3/latest/userguide/s3-files.html) — **CLI walkthroughs** (EC2 and Lambda) and **Terraform examples** (EC2, ECS Fargate, Lambda), copy-paste first.
 
 ## What this is
