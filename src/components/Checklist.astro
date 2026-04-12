@@ -1,0 +1,104 @@
+---
+interface Props {
+  id: string;
+  items: string[];
+}
+
+const { id, items } = Astro.props;
+---
+
+<div class="not-content sl-checklist" data-checklist-id={id}>
+  <p class="sl-checklist-heading">Progress checklist</p>
+  <ul>
+    {
+      items.map((item, i) => (
+        <li>
+          <label>
+            <input
+              type="checkbox"
+              data-key={`${id}-${i}`}
+              class="sl-checklist-box"
+            />
+            <span>{item}</span>
+          </label>
+        </li>
+      ))
+    }
+  </ul>
+</div>
+
+<script>
+  function initChecklist(root: Document | ShadowRoot = document) {
+    root.querySelectorAll<HTMLDivElement>('.sl-checklist').forEach((el) => {
+      const boxes = el.querySelectorAll<HTMLInputElement>('.sl-checklist-box');
+      boxes.forEach((box) => {
+        const key = box.dataset.key!;
+        box.checked = localStorage.getItem(key) === 'true';
+        box.addEventListener('change', () => {
+          localStorage.setItem(key, String(box.checked));
+        });
+      });
+    });
+  }
+
+  // Run on first load
+  initChecklist();
+
+  // Re-run after Astro View Transitions navigate
+  document.addEventListener('astro:after-swap', () => initChecklist());
+</script>
+
+<style>
+  .sl-checklist {
+    border: 1px solid var(--sl-color-gray-5);
+    border-radius: 0.5rem;
+    padding: 1rem 1.25rem;
+    margin-block: 1.5rem;
+    background: var(--sl-color-bg-sidebar);
+  }
+
+  .sl-checklist-heading {
+    font-size: var(--sl-text-sm);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--sl-color-gray-3);
+    margin: 0 0 0.75rem;
+  }
+
+  .sl-checklist ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .sl-checklist li {
+    margin: 0;
+    padding: 0;
+  }
+
+  .sl-checklist label {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    cursor: pointer;
+    font-size: var(--sl-text-base);
+    color: var(--sl-color-text);
+  }
+
+  .sl-checklist-box {
+    width: 1rem;
+    height: 1rem;
+    flex-shrink: 0;
+    accent-color: var(--sl-color-accent);
+    cursor: pointer;
+  }
+
+  .sl-checklist label:has(input:checked) span {
+    text-decoration: line-through;
+    color: var(--sl-color-gray-3);
+  }
+</style>

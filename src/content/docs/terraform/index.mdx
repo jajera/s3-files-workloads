@@ -1,0 +1,32 @@
+---
+title: Terraform
+description: Provision Amazon S3 Files infrastructure for EC2, ECS Fargate, and Lambda using the terraform-aws-s3-files modules.
+sidebar:
+  label: Overview
+---
+
+import { CardGrid, LinkCard, Aside } from '@astrojs/starlight/components';
+
+Provision the S3 bucket, file system, mount targets, IAM roles, and security groups — plus the compute resource — in a single `terraform apply` using the [terraform-aws-s3-files](https://github.com/jajera/terraform-aws-s3-files) modules. These pages replace the manual CLI walkthroughs for EC2, ECS, and Lambda.
+
+<Aside type="note">
+  The examples require **Terraform >= 1.5** and the **AWS provider >= 6.40**. AWS credentials must be configured before running `terraform apply`.
+</Aside>
+
+<CardGrid>
+  <LinkCard
+    title="EC2"
+    href="/s3-files-workloads/terraform/ec2/"
+    description="Launch an Amazon Linux 2023 instance, install amazon-efs-utils, and mount the file system at /mnt/s3files. Access via SSM Session Manager — no SSH key pair required."
+  />
+  <LinkCard
+    title="ECS Fargate"
+    href="/s3-files-workloads/terraform/ecs/"
+    description="Register an ECS task definition with s3filesVolumeConfiguration and run it on an existing Fargate cluster. Verify the mount via CloudWatch Logs."
+  />
+  <LinkCard
+    title="Lambda"
+    href="/s3-files-workloads/terraform/lambda/"
+    description="Deploy a VPC-attached Lambda function that mounts the file system via an access point. Invoke the function and verify the /mnt/s3files listing in the response."
+  />
+</CardGrid>

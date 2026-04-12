@@ -1,0 +1,107 @@
+---
+/**
+ * Clickable card with custom icon (same look as CardWithIcon).
+ * Use for the first card in the grid so it matches the others and stays a link.
+ */
+interface Props {
+	title: string;
+	href: string;
+	description?: string;
+}
+
+const { title, href, description } = Astro.props;
+const hasIconSlot = Astro.slots.has('icon');
+---
+
+<a class="card card-link sl-flex" href={href}>
+	<p class="title sl-flex">
+		{hasIconSlot && (
+			<div class="icon">
+				<slot name="icon" />
+			</div>
+		)}
+		<span set:html={title} />
+	</p>
+	{description && <div class="body" set:html={description} />}
+</a>
+
+<style>
+	@layer starlight.components {
+		.card-link {
+			text-decoration: none;
+			color: inherit;
+		}
+		.card-link::before {
+			content: '';
+			position: absolute;
+			inset: 0;
+		}
+		.card {
+			position: relative;
+			--sl-card-border: var(--sl-color-purple);
+			--sl-card-bg: var(--sl-color-purple-low);
+			border: 1px solid var(--sl-color-gray-5);
+			background-color: var(--sl-color-black);
+			padding: clamp(1rem, calc(0.125rem + 3vw), 2.5rem);
+			flex-direction: column;
+			gap: clamp(0.5rem, calc(0.125rem + 1vw), 1rem);
+		}
+		.card:nth-child(4n + 1) {
+			--sl-card-border: var(--sl-color-orange);
+			--sl-card-bg: var(--sl-color-orange-low);
+		}
+		.card:nth-child(4n + 3) {
+			--sl-card-border: var(--sl-color-green);
+			--sl-card-bg: var(--sl-color-green-low);
+		}
+		.card:nth-child(4n + 4) {
+			--sl-card-border: var(--sl-color-blue);
+			--sl-card-bg: var(--sl-color-blue-low);
+		}
+		.title {
+			font-weight: 600;
+			font-size: var(--sl-text-h4);
+			color: var(--sl-color-white);
+			line-height: var(--sl-line-height-headings);
+			gap: 1rem;
+			align-items: center;
+		}
+		.card .icon {
+			width: 2rem;
+			height: 2rem;
+			min-width: 2rem;
+			min-height: 2rem;
+			border: 1px solid var(--sl-card-border);
+			background-color: var(--sl-card-bg);
+			padding: 0.25rem;
+			border-radius: 0.25rem;
+			flex-shrink: 0;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			box-sizing: border-box;
+		}
+		.card .icon :global(svg) {
+			width: 100%;
+			height: 100%;
+			flex-shrink: 0;
+			fill: var(--sl-card-border);
+		}
+		.card .icon :global(svg path),
+		.card .icon :global(svg circle) {
+			fill: var(--sl-card-border);
+		}
+		.card .icon :global(svg [stroke]) {
+			stroke: var(--sl-card-border);
+		}
+		.card .body {
+			margin: 0;
+			font-size: clamp(var(--sl-text-sm), calc(0.5rem + 1vw), var(--sl-text-body));
+			color: var(--sl-color-gray-3);
+			line-height: 1.5;
+		}
+		.card-link:hover {
+			border-color: var(--sl-color-gray-2);
+		}
+	}
+</style>

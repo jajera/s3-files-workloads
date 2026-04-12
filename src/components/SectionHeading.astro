@@ -1,0 +1,63 @@
+---
+/**
+ * Section heading with optional icon for livelier docs.
+ * Renders an h3 with icon + title; use id for anchor links.
+ * Optional iconClass applies brand color to the icon (e.g. heading-icon-aws).
+ */
+interface Props {
+	title: string;
+	id?: string;
+	iconClass?: string;
+}
+
+const { title, id, iconClass } = Astro.props;
+const hasIcon = Astro.slots.has('icon');
+---
+
+<h3 id={id} class="section-heading-with-icon">
+	{hasIcon && (
+		<span class:list={['section-heading-icon', iconClass]} aria-hidden="true">
+			<slot name="icon" />
+		</span>
+	)}
+	<span class="section-heading-text">{title}</span>
+</h3>
+
+<style>
+	.section-heading-with-icon {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		margin-top: 1.5rem;
+		margin-bottom: 0.5rem;
+	}
+	.section-heading-icon {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		flex-shrink: 0;
+		width: 1.5rem;
+		height: 1.5rem;
+		opacity: 0.9;
+	}
+	.section-heading-icon :global(svg) {
+		width: 100%;
+		height: 100%;
+	}
+	/* Brand colors for section heading icons (match PageNavStrip) */
+	.section-heading-icon.heading-icon-aws :global(svg) {
+		color: #ff9900;
+	}
+	.section-heading-icon.heading-icon-iam :global(svg) {
+		color: #14b8a6;
+	}
+	.section-heading-icon.heading-icon-terraform :global(svg) {
+		color: #7b42bc;
+	}
+	.section-heading-icon.heading-icon-kubernetes :global(svg) {
+		color: #326ce5;
+	}
+	.section-heading-icon.heading-icon-git :global(svg) {
+		color: #f05032;
+	}
+</style>

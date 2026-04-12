@@ -1,0 +1,136 @@
+---
+title: IAM
+description: Create the EC2 compute role so the instance can mount and access the S3 Files file system.
+sidebar:
+  label: IAM
+---
+
+import { Steps, Aside, Badge } from '@astrojs/starlight/components';
+import Checklist from '@/components/Checklist.astro';
+import Tooltip from '@/components/Tooltip.astro';
+
+<Checklist
+  id="ec2-setup-iam"
+  items={[
+    'Base exports confirmed (AWS_REGION, ACCOUNT_ID, BUCKET_ARN)',
+    'EC2 compute role s3files-compute-role-ec2 created',
+    'AmazonS3FilesClientFullAccess attached',
+    'AmazonSSMManagedInstanceCore attached',
+    'Inline S3 read policy attached',
+    'Instance profile s3files-ec2-instance-profile created and role added',
+  ]}
+/>
+
+## Overview
+
+<Tooltip term="s3files" /> requires exactly two <Tooltip term="iam" /> roles:
+
+| Role | Who assumes it | Purpose |
+| ---- | -------------- | ------- |
+| **File system role** | `elasticfilesystem.amazonaws.com` | S3 Files reads/writes the bucket and manages EventBridge sync rules |
+| **Compute role** | EC2 instance profile | EC2 mounts the file system and reads objects directly from S3 |
+
+The **file system** role was created in [File System](/s3-files-workloads/ec2/setup/filesystem/). This page creates the **EC2 compute** role.
+
+<Aside type="caution">
+  The file system role principal is `elasticfilesystem.amazonaws.com` — not `s3.amazonaws.com`. This is intentional; S3 Files is built on EFS infrastructure.
+</Aside>
+
+<Steps>
+
+1. **Confirm base exports.** <Badge text="Required" variant="tip" size="small" />
+
+   Re-run these in your current shell so all required variables are set:
+
+   ```bash frame="terminal"
+   export AWS_REGION=ap-southeast-6
+   export ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+   export BUCKET=my-s3-files-bucket        # ← replace with your real bucket name
+   export BUCKET_ARN=arn:aws:s3:::${BUCKET}
+   echo "Region: $AWS_REGION  Account: $ACCOUNT_ID  Bucket ARN: $BUCKET_ARN"
+   ```
+
+2. **Create the EC2 compute role.** <Badge text="Required" variant="tip" size="small" />
+
+   Role name **`s3files-compute-role-ec2`**, instance profile **`s3files-ec2-instance-profile`**.
+
+   ```bash frame="terminal" title="compute-trust-ec2.json"
+   cat > /tmp/compute-trust-ec2.json <<EOF
+   {
+     "Version": "2012-10-17",
+     "Statement": [{
+       "Effect": "Allow",
+       "Principal": { "Service": "ec2.amazonaws.com" },
+       "Action": "sts:AssumeRole"
+     }]
+   }
+   EOF
+   aws iam create-role \
+     --role-name s3files-compute-role-ec2 \
+     --assume-role-policy-document file:///tmp/compute-trust-ec2.json
+   ```
+
+3. **Attach managed policies.** <Badge text="Required" variant="tip" size="small" />
+
+   Attach **`AmazonS3FilesClientFullAccess`** to allow mounting the file system:
+
+   ```bash frame="terminal"
+   aws iam attach-role-policy \
+     --role-name s3files-compute-role-ec2 \
+     --policy-arn arn:aws:iam::aws:policy/AmazonS3FilesClientFullAccess
+   ```
+
+   Attach **`AmazonSSMManagedInstanceCore`** so the instance can register with Systems Manager — required for the [EC2 launch walkthrough](/s3-files-workloads/ec2/install-client/) (Session Manager shell, no SSH):
+
+   ```bash frame="terminal"
+   aws iam attach-role-policy \
+     --role-name s3files-compute-role-ec2 \
+     --policy-arn arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+   ```
+
+4. **Attach an inline S3 read policy.** <Badge text="Required" variant="tip" size="small" />
+
+   ```bash frame="terminal" title="compute-s3-read-ec2.json"
+   cat > /tmp/compute-s3-read-ec2.json <<EOF
+   {
+     "Version": "2012-10-17",
+     "Statement": [
+       {
+         "Sid": "S3ObjectReadAccess",
+         "Effect": "Allow",
+         "Action": ["s3:GetObject", "s3:GetObjectVersion"],
+         "Resource": "${BUCKET_ARN}/*"
+       },
+       {
+         "Sid": "S3BucketListAccess",
+         "Effect": "Allow",
+         "Action": "s3:ListBucket",
+         "Resource": "${BUCKET_ARN}"
+       }
+     ]
+   }
+   EOF
+   aws iam put-role-policy \
+     --role-name s3files-compute-role-ec2 \
+     --policy-name S3FilesComputeS3ReadPolicy \
+     --policy-document file:///tmp/compute-s3-read-ec2.json
+   ```
+
+5. **Create the instance profile and add the role.** <Badge text="Required" variant="tip" size="small" />
+
+   ```bash frame="terminal"
+   aws iam create-instance-profile --instance-profile-name s3files-ec2-instance-profile
+   aws iam add-role-to-instance-profile \
+     --instance-profile-name s3files-ec2-instance-profile \
+     --role-name s3files-compute-role-ec2
+   ```
+
+   <Aside type="note">
+     IAM can take up to about **one minute** before EC2 accepts the new instance profile. If **`aws ec2 run-instances`** returns **`Invalid IAM Instance Profile name`**, wait and retry, or confirm with **`aws iam get-instance-profile --instance-profile-name s3files-ec2-instance-profile`** before launching.
+   </Aside>
+
+</Steps>
+
+## Next step
+
+Continue to [Security Groups](/s3-files-workloads/ec2/setup/security-groups/) to open port 2049 between the EC2 instance and mount targets.

@@ -1,0 +1,138 @@
+---
+description: Which Astro Starlight component to use in which situation. Anti-patterns and aliases for this project.
+globs:
+  - "src/**/*.mdx"
+  - "src/**/*.astro"
+alwaysApply: false
+---
+
+# Astro Components
+
+## Component decision table
+
+| Situation | Component | Notes |
+| --------- | --------- | ----- |
+| Ordered multi-step procedure | `<Steps>` | Visual numbers; order is not tied to file naming |
+| Info / supplemental note | `<Aside type="note">` | Blue |
+| Helpful shortcut or recommendation | `<Aside type="tip">` | Green |
+| Something that can go wrong | `<Aside type="caution">` | Yellow |
+| Destructive or irreversible action | `<Aside type="danger">` | Red |
+| Tool / OS alternatives | `<Tabs syncKey="tool"> + <TabItem>` | Use `syncKey="tool"` across a page so tabs stay in sync. **When inside `<Steps>`, indent 3 spaces.** |
+| Progress tracker at top of page | `<Checklist id="..." items={[...]} />` | `id` must be unique across site |
+| Inline AWS/K8s jargon tooltip | `<Tooltip term="..." />` | Term must be in `src/data/glossary.ts` |
+| Section sub-heading with brand icon | `<SectionHeading title="..." />` | Accepts `icon` slot and `iconClass` prop |
+| File/directory layout | `<FileTree>` | Use for showing relevant paths |
+| Splash page link card with icon | `<LinkCardWithIcon>` | Custom component; extends Starlight card |
+| Splash page info card with icon | `<CardWithIcon>` | Custom component; for non-linked cards |
+| Label / status badge | `<Badge text="..." variant="tip" size="small" />` | Use `variant="tip"` for Required, `"note"` for Optional |
+
+## JSX inside list items (Steps) — critical rule
+
+**This is the most common MDX bug in this repo.** Block-level JSX (`<Tabs>`, `<Aside>`, etc.) inside a step **must** be indented so the parser treats it as part of the list item. Wrong indentation causes: `Expected a closing tag for '<Tabs>' before the end of 'listItem'`.
+
+| Level | Indentation | What |
+| ----- | ----------- | ---- |
+| Step content (code, text, `<Tabs>`) | **3 spaces** | Same as the step's body |
+| Inside `<Tabs>`: `<TabItem>`, `</TabItem>` | **5 spaces** | 3 + 2 |
+| Inside `<TabItem>`: code blocks, etc. | **6 spaces** | 3 + 3 |
+
+**Correct:**
+
+```mdx
+<Steps>
+1. **Mount the file system.**
+
+   ```bash frame="terminal"
+   sudo mount -t s3files $FS_ID:/ /mnt/s3files
+   ```
+
+   Verify on either distro:
+
+   <Tabs syncKey="os">
+     <TabItem label="Amazon Linux">
+      ```bash frame="terminal"
+      df -h /mnt/s3files
+      ```
+     </TabItem>
+     <TabItem label="Ubuntu">
+      ```bash frame="terminal"
+      df -h /mnt/s3files
+      ```
+     </TabItem>
+   </Tabs>
+</Steps>
+```
+
+## Import statement
+
+Always import components at the top of the file, after the frontmatter:
+
+```mdx
+import { Steps, Aside, Tabs, TabItem, FileTree, Badge, Card, CardGrid, LinkCard, LinkButton } from '@astrojs/starlight/components';
+import { Image } from 'astro:assets';
+import Checklist from '@/components/Checklist.astro';
+import Tooltip from '@/components/Tooltip.astro';
+```
+
+Only import what is actually used on that page.
+
+For **brand-colored icons** (e.g. splash page cards), import from `~icons/simple-icons/<slug>` or `~icons/mdi/<name>`:
+
+```mdx
+import IconSiAmazonwebservices from '~icons/simple-icons/amazonwebservices';
+import IconSiKubernetes from '~icons/simple-icons/kubernetes';
+import IconMdiLambda from '~icons/mdi/lambda';
+```
+
+Requires `@iconify-json/mdi` and `@iconify-json/simple-icons` as dev dependencies.
+
+## Path alias
+
+Always use `@/` to reference files inside `src/`:
+
+```ts
+import { glossary } from '@/data/glossary';
+import Checklist from '@/components/Checklist.astro';
+```
+
+Never use relative `../../` paths for project-internal imports.
+
+## `not-content` class
+
+Apply `class="not-content"` to the root element of any custom Astro component (e.g. `Checklist`, `Tooltip`) to prevent Starlight's default prose styles from leaking into the component.
+
+## Anti-patterns — never do these
+
+- **Do not use raw HTML** (`<div>`, `<span>`, `<table>`) directly in `.mdx` files. Use Starlight components or create a new `.astro` component.
+- **Do not use inline styles** on Starlight components. Use CSS custom properties (`var(--sl-color-*)`) in component `<style>` blocks.
+- **Do not number file names** (`01-mount.mdx`). Sidebar order lives in `astro.config.mjs`.
+- **Do not write term definitions inline** in page content. Always add the term to `src/data/glossary.ts` and use `<Tooltip>`.
+- **Do not commit `.env` files** or any file containing secrets.
+
+## Expressive Code (fenced code blocks)
+
+| Attribute | Example | Effect |
+| --------- | ------- | ------ |
+| `title=` | ` ```bash title="task-definition.json" ` | File name tab |
+| `frame="terminal"` | ` ```bash frame="terminal" ` | Terminal window frame |
+| `{lines}` | ` ```json {3-5} ` | Line highlighting |
+| `ins=` / `del=` | ` ```json ins={4} del={3} ` | Diff per-line |
+| ` ```diff lang="json" ` | `+ new line` / `- old line` | Full diff block |
+
+## Adding a new glossary term
+
+1. Open `src/data/glossary.ts`.
+2. Add `termkey: 'Term — definition sentence.'` to the record (lowercase key, alphabetical order).
+3. Use `<Tooltip term="termkey" />` on any page that references it.
+4. Do not define the term anywhere else.
+
+## Adding a new section batch
+
+1. Create `src/content/docs/<section>/index.mdx` and sub-pages with `draft: true`.
+2. Create `src/assets/<section>/` for images.
+3. Do NOT add the section to the `sidebar` in `astro.config.mjs` yet — draft pages cause build errors if referenced in the sidebar.
+4. When the batch is ready to publish: remove `draft: true` from all pages, then uncomment or add the section group in `astro.config.mjs`.
+
+---
+
+_Update this rule when a new convention is adopted._

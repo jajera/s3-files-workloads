@@ -1,0 +1,143 @@
+---
+title: Bucket
+description: Create an S3 general purpose bucket, enable versioning (required for S3 Files sync), confirm supported encryption, and upload demo/walkthrough.txt as the shared demo fixture.
+sidebar:
+  label: Bucket
+---
+
+import { Steps, Aside, Badge } from '@astrojs/starlight/components';
+import Checklist from '@/components/Checklist.astro';
+import Tooltip from '@/components/Tooltip.astro';
+
+<Checklist
+  id="ec2-setup-bucket"
+  items={[
+    'Exports set',
+    'Bucket created',
+    'Versioning enabled',
+    'Encryption confirmed (SSE-S3 or SSE-KMS)',
+    'Demo fixture file uploaded (demo/walkthrough.txt)',
+  ]}
+/>
+
+## Overview
+
+<Tooltip term="s3files" /> requires <Tooltip term="versioning" /> to synchronise changes between the file system and the bucket. It also supports only <Tooltip term="sse" /> — specifically SSE-S3 or SSE-KMS. Set both before creating the file system.
+
+<Steps>
+
+1. **Set environment variables.** <Badge text="Required" variant="tip" size="small" />
+
+   Use these exports throughout the EC2 walkthrough. Replace values to match your environment.
+
+   ```bash frame="terminal"
+   export AWS_REGION=ap-southeast-6
+   export BUCKET=my-s3-files-bucket        # ← replace with your real bucket name
+   export BUCKET_ARN=arn:aws:s3:::${BUCKET}
+   export ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+   echo "Account: $ACCOUNT_ID  Region: $AWS_REGION  Bucket: $BUCKET"
+   ```
+
+   <Aside type="caution">
+     S3 bucket names are **globally unique** across all AWS accounts. If `my-s3-files-bucket` is already taken, `create-bucket` in the next step will fail with `BucketAlreadyExists`. Choose a name that is unique — for example prefix it with your account ID: `$ACCOUNT_ID-s3files-bucket`.
+   </Aside>
+
+2. **Create the bucket.** <Badge text="Required" variant="tip" size="small" />
+
+   ```bash frame="terminal"
+   aws s3api create-bucket \
+     --bucket $BUCKET \
+     --region $AWS_REGION \
+     --create-bucket-configuration LocationConstraint=$AWS_REGION
+   ```
+
+   <Aside type="note">
+     If your region is `us-east-1`, omit `--create-bucket-configuration` — that region does not accept a `LocationConstraint`.
+   </Aside>
+
+3. **Enable versioning.** <Badge text="Required" variant="tip" size="small" />
+
+   S3 Files will fail to create a file system if versioning is not enabled.
+
+   ```bash frame="terminal"
+   aws s3api put-bucket-versioning \
+     --bucket $BUCKET \
+     --versioning-configuration Status=Enabled
+   ```
+
+   Verify:
+
+   ```bash frame="terminal"
+   aws s3api get-bucket-versioning --bucket $BUCKET
+   ```
+
+   Expected output:
+
+   ```json
+   {
+     "Status": "Enabled"
+   }
+   ```
+
+4. **Confirm encryption.** <Badge text="Required" variant="tip" size="small" />
+
+   New buckets default to SSE-S3 (AES-256). Verify:
+
+   ```bash frame="terminal"
+   aws s3api get-bucket-encryption --bucket $BUCKET
+   ```
+
+   The rule type must be `aws:kms` (SSE-KMS) or `AES256` (SSE-S3). If the command returns a `ServerSideEncryptionConfigurationNotFoundError`, apply SSE-S3 explicitly:
+
+   ```bash frame="terminal"
+   aws s3api put-bucket-encryption \
+     --bucket $BUCKET \
+     --server-side-encryption-configuration '{
+       "Rules": [{
+         "ApplyServerSideEncryptionByDefault": {
+           "SSEAlgorithm": "AES256"
+         }
+       }]
+     }'
+   ```
+
+   <Aside type="caution">
+     SSE-C (customer-provided keys) and DSSE-KMS are **not supported** by S3 Files. Using an unsupported encryption type will cause file system creation to fail.
+   </Aside>
+
+5. **Seed the `demo/` prefix.** <Badge text="Required" variant="tip" size="small" />
+
+   Upload a single synthetic text object at `demo/walkthrough.txt`. The EC2 mount walkthrough uses that key for read checks (`cat`, `aws s3 cp`, greps). The script builds the file with `echo` lines (no heredoc) to avoid paste-terminator issues.
+
+   ```bash frame="terminal"
+   DEMO_ROOT=$(mktemp -d)
+   WALK="$DEMO_ROOT/walkthrough.txt"
+
+   {
+     echo 'S3 Files walkthrough — demo fixture'
+     echo '==================================='
+     echo ''
+     echo 'This is the one shared object for all demo scenarios in this documentation set.'
+     echo 'Use it to confirm reads through the mount (cat, less, editors) and via the'
+     echo 'AWS CLI (aws s3 cp) with a short but non-trivial body of text.'
+     echo ''
+     echo 'Canonical marker (for greps): DEMO_BUNDLE_VERSION=1'
+   } > "$WALK"
+
+   aws s3 cp "$WALK" "s3://$BUCKET/demo/walkthrough.txt" --region "$AWS_REGION"
+   rm -rf "$DEMO_ROOT"
+   ```
+
+   Confirm the upload:
+
+   ```bash frame="terminal"
+   aws s3 ls "s3://$BUCKET/demo/" --region "$AWS_REGION"
+   ```
+
+   You should see `demo/walkthrough.txt`.
+
+</Steps>
+
+## Next step
+
+Continue to [File System](/s3-files-workloads/ec2/setup/filesystem/) to create the file system IAM role and the S3 Files file system.

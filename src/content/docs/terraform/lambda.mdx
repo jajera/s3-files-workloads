@@ -1,0 +1,179 @@
+---
+title: Lambda — Terraform Example
+description: Deploy a VPC-attached Lambda function that mounts an S3 Files file system via an access point using terraform-aws-s3-files.
+sidebar:
+  label: Lambda
+---
+
+import { Steps, Aside, FileTree } from '@astrojs/starlight/components';
+import Checklist from '@/components/Checklist.astro';
+
+<Checklist
+  id="terraform-lambda"
+  items={[
+    'Prerequisites confirmed (Terraform >= 1.5, AWS CLI v2.34.26+, AWS credentials)',
+    'terraform.tfvars created with vpc_id and subnet_ids',
+    'terraform apply completed successfully',
+    'Lambda function invoked successfully',
+    '/mnt/s3files listing returned in the response',
+  ]}
+/>
+
+## What this example does
+
+This example provisions:
+
+- An S3 bucket (versioning + SSE-S3 enabled)
+- An S3 Files file system and mount targets in each provided subnet
+- An S3 Files access point at `/lambda` (UID/GID 1000, required for Lambda)
+- IAM roles (file system role + Lambda execution role with VPC access)
+- Security groups (compute → mount target on NFS port 2049)
+- A CloudWatch log group for the Lambda function
+- A Python 3.14 Lambda function that lists `/mnt/s3files`
+
+<Aside type="caution">
+  Lambda **requires an access point** — it cannot mount an S3 Files file system by file system ID alone. The example creates one automatically at root directory `/lambda` with POSIX UID/GID 1000.
+</Aside>
+
+<Steps>
+
+1. **Confirm prerequisites.**
+
+   | Requirement | Minimum version |
+   | --- | --- |
+   | Terraform | 1.5 |
+   | AWS provider | 6.40 |
+   | archive provider | 2.4 |
+   | AWS CLI | 2.34.26 |
+
+   Confirm the CLI version:
+
+   ```bash frame="terminal"
+   aws --version
+   ```
+
+   The subnets you provide must have outbound internet access (via NAT Gateway) or VPC interface endpoints for Lambda to reach the Lambda service, CloudWatch Logs, and S3. Private subnets with a NAT Gateway are the most common setup.
+
+2. **Clone the example.**
+
+   ```bash frame="terminal"
+   git clone https://github.com/jajera/terraform-aws-s3-files.git
+   cd terraform-aws-s3-files/examples/lambda
+   ```
+
+   <FileTree>
+   - examples/lambda/
+     - main.tf
+     - terraform.tfvars.example
+     - terraform.tfvars _(you create this)_
+   </FileTree>
+
+   The Lambda function code is generated inline by Terraform using the `archive` provider — no separate function file is needed.
+
+3. **Create `terraform.tfvars`.**
+
+   ```bash frame="terminal"
+   cp terraform.tfvars.example terraform.tfvars
+   ```
+
+   Edit `terraform.tfvars`:
+
+   ```hcl
+   vpc_id     = "vpc-0123456789abcdef0"
+   subnet_ids = ["subnet-aaaaaaaaaaaaaaaaa", "subnet-bbbbbbbbbbbbbbbbb"]
+
+   # Optional overrides (defaults shown):
+   # aws_region         = "ap-southeast-6"
+   # log_retention_days = 7
+   # bucket_name        = null   # auto-generated: s3files-demo-<random>
+   # bucket_force_destroy = true
+   ```
+
+   | Variable | Default | Required | Description |
+   | --- | --- | --- | --- |
+   | `vpc_id` | — | yes | VPC for mount targets and Lambda ENIs |
+   | `subnet_ids` | — | yes | Subnets for mount targets and Lambda (must have NAT or VPC endpoints) |
+   | `aws_region` | `ap-southeast-6` | no | AWS region |
+   | `log_retention_days` | `7` | no | CloudWatch log retention period in days |
+   | `bucket_name` | auto-generated | no | Leave `null` to use `s3files-demo-<random>` |
+   | `bucket_force_destroy` | `true` | no | Allow destroy even when bucket contains objects |
+
+4. **Initialise and apply.**
+
+   ```bash frame="terminal"
+   terraform init
+   terraform plan
+   terraform apply
+   ```
+
+   <Aside type="note">
+     `terraform apply` creates all S3 Files infrastructure, the access point, and the Lambda function. The archive provider packages the inline Python handler into `lambda.zip` locally. Allow 3–5 minutes for mount targets to become available before invoking the function.
+   </Aside>
+
+   When apply finishes, note the outputs:
+
+   ```bash frame="terminal"
+   terraform output
+   ```
+
+   Key outputs:
+
+   | Output | Description |
+   | --- | --- |
+   | `lambda_function_name` | Lambda function name |
+   | `file_system_id` | S3 Files file system ID |
+   | `access_point_arn` | ARN of the S3 Files access point |
+   | `bucket_name` | Backing S3 bucket name |
+
+5. **Invoke the function.**
+
+   ```bash frame="terminal"
+   aws lambda invoke \
+     --function-name "$(terraform output -raw lambda_function_name)" \
+     --region ap-southeast-6 \
+     --payload '{}' \
+     response.json \
+   && cat response.json
+   ```
+
+   <Aside type="note">
+     The first invocation may return a cold-start error if the mount target is still provisioning. Wait 2–3 minutes and retry if you receive a timeout or mount-related error.
+   </Aside>
+
+6. **Verify the response.**
+
+   Expected response body:
+
+   ```json
+   {"statusCode": 200, "body": "[]"}
+   ```
+
+   The empty list `[]` is correct — the file system is empty at this point. Write a file via the S3 CLI and invoke again to see it appear:
+
+   ```bash frame="terminal"
+   aws s3 cp /dev/stdin \
+     "s3://$(terraform output -raw bucket_name)/lambda/hello.txt" \
+     --content-type text/plain \
+     --region ap-southeast-6 <<< "hello from terraform lambda"
+
+   aws lambda invoke \
+     --function-name "$(terraform output -raw lambda_function_name)" \
+     --region ap-southeast-6 \
+     --payload '{}' \
+     response.json \
+   && cat response.json
+   ```
+
+   The response body should now list `['hello.txt']`.
+
+7. **Tear down.**
+
+   ```bash frame="terminal"
+   terraform destroy
+   ```
+
+   <Aside type="caution">
+     `bucket_force_destroy = true` (the default) means `terraform destroy` deletes the bucket and all its objects. Set it to `false` before apply if you need to preserve the bucket contents.
+   </Aside>
+
+</Steps>

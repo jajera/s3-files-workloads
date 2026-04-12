@@ -1,0 +1,18 @@
+{
+  "recommendations": [
+    "hashicorp.terraform",
+    "redhat.vscode-yaml",
+    "yzhang.markdown-all-in-one",
+    "davidanson.vscode-markdownlint",
+    "unifiedjs.vscode-mdx",
+    "esbenp.prettier-vscode",
+    "astro-build.astro-vscode",
+    "timonwong.shellcheck",
+    "mads-hartmann.bash-ide-vscode",
+    "eamodio.gitlens",
+    "editorconfig.editorconfig",
+    "ms-vscode.vscode-json",
+    "streetsidesoftware.code-spell-checker"
+  ],
+  "unwantedRecommendations": []
+}

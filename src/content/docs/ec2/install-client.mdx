@@ -1,0 +1,167 @@
+---
+title: EC2 — Launch & Install
+description: Launch an Amazon Linux 2023 EC2 instance with the S3 Files compute role, install amazon-efs-utils v3, and connect via SSM Session Manager.
+sidebar:
+  label: Launch & Install
+---
+
+import { Steps, Aside, Badge } from '@astrojs/starlight/components';
+import Checklist from '@/components/Checklist.astro';
+
+<Checklist
+  id="ec2-install-client"
+  items={[
+    'Base exports confirmed (AWS_REGION, VPC_ID, FS_ID, COMPUTE_SG_ID)',
+    'HTTPS egress added to compute SG (SSM)',
+    'Amazon Linux 2023 AMI ID resolved',
+    'Instance launched with s3files-ec2-instance-profile',
+    'Instance in running state',
+    'SSM agent registered — aws ssm describe-instance-information shows the instance',
+    'SSM session opens successfully',
+  ]}
+/>
+
+## Overview
+
+This page launches a **t3.micro Amazon Linux 2023** instance into the same VPC as the S3 Files mount targets, attaches the compute instance profile created in [IAM](/s3-files-workloads/ec2/setup/iam/), and connects using **SSM Session Manager** — no key pair or public IP required.
+
+<Aside type="note">
+  The instance subnet must be in the same Availability Zone as at least one mount target, but it can be a **public or NAT-routed subnet** so SSM can reach the AWS APIs. Mount targets can stay on private subnets.
+</Aside>
+
+<Steps>
+
+1. **Confirm base exports.** <Badge text="Required" variant="tip" size="small" />
+
+   Re-run these in your current shell. Resolve `COMPUTE_SG_ID` by name if the variable is not still set.
+
+   ```bash frame="terminal"
+   export AWS_REGION=ap-southeast-6
+   export VPC_ID=vpc-0123456789abcdef0   # ← replace with your VPC ID
+
+   export BUCKET=my-s3-files-bucket      # ← replace with your real bucket name
+   export BUCKET_ARN=arn:aws:s3:::${BUCKET}
+
+   export FS_ID=$(aws s3files list-file-systems \
+     --region "$AWS_REGION" \
+     --bucket "$BUCKET_ARN" \
+     --query 'fileSystems[0].fileSystemId' \
+     --output text)
+   echo "FS_ID=$FS_ID"
+
+   export COMPUTE_SG_ID=$(aws ec2 describe-security-groups \
+     --filters \
+       "Name=group-name,Values=s3files-ec2-compute-sg" \
+       "Name=vpc-id,Values=$VPC_ID" \
+     --region "$AWS_REGION" \
+     --query 'SecurityGroups[0].GroupId' \
+     --output text)
+   echo "COMPUTE_SG_ID=$COMPUTE_SG_ID"
+   ```
+
+   `FS_ID` must be `fs-…` and `COMPUTE_SG_ID` must be `sg-…`. If either is `None`, complete the [Setup](/s3-files-workloads/ec2/setup/bucket/) pages first.
+
+2. **Add HTTPS egress to the compute security group.** <Badge text="Required" variant="tip" size="small" />
+
+   SSM Session Manager requires outbound HTTPS (port 443) so the agent can reach AWS API endpoints.
+
+   ```bash frame="terminal"
+   aws ec2 authorize-security-group-egress \
+     --group-id "$COMPUTE_SG_ID" \
+     --protocol tcp \
+     --port 443 \
+     --cidr 0.0.0.0/0 \
+     --region "$AWS_REGION"
+   ```
+
+   <Aside type="tip">
+     If `InvalidPermission.Duplicate` appears, the rule already exists. Continue to the next step.
+   </Aside>
+
+3. **Resolve the latest Amazon Linux 2023 AMI.** <Badge text="Required" variant="tip" size="small" />
+
+   ```bash frame="terminal"
+   export AMI_ID=$(aws ec2 describe-images \
+     --owners amazon \
+     --filters \
+       "Name=name,Values=al2023-ami-*-kernel-*-x86_64" \
+       "Name=virtualization-type,Values=hvm" \
+       "Name=architecture,Values=x86_64" \
+     --query 'sort_by(Images, &CreationDate)[-1].ImageId' \
+     --output text \
+     --region "$AWS_REGION")
+   echo "AMI_ID=$AMI_ID"
+   ```
+
+4. **Choose a subnet for the instance.** <Badge text="Required" variant="tip" size="small" />
+
+   The subnet must be in the **same AZ as one of your mount targets** and have outbound internet access (via IGW or NAT) for SSM.
+
+   ```bash frame="terminal"
+   export INSTANCE_SUBNET_ID=subnet-0123456789abcdef0   # ← replace with your subnet ID
+   echo "INSTANCE_SUBNET_ID=$INSTANCE_SUBNET_ID"
+   ```
+
+5. **Launch the EC2 instance.** <Badge text="Required" variant="tip" size="small" />
+
+   ```bash frame="terminal"
+   export INSTANCE_ID=$(aws ec2 run-instances \
+     --image-id "$AMI_ID" \
+     --instance-type t3.micro \
+     --subnet-id "$INSTANCE_SUBNET_ID" \
+     --iam-instance-profile Name=s3files-ec2-instance-profile \
+     --security-group-ids "$COMPUTE_SG_ID" \
+     --metadata-options "HttpTokens=required,HttpEndpoint=enabled,HttpPutResponseHopLimit=2" \
+     --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=s3files-demo-ec2}]" \
+     --region "$AWS_REGION" \
+     --query 'Instances[0].InstanceId' \
+     --output text)
+   echo "INSTANCE_ID=$INSTANCE_ID"
+   ```
+
+   <Aside type="note">
+     `HttpPutResponseHopLimit=2` is required when using IMDSv2 inside a container or with tools that need an extra hop. It is safe to set on bare EC2 instances as well.
+   </Aside>
+
+6. **Wait for the instance to reach running state.** <Badge text="Required" variant="tip" size="small" />
+
+   ```bash frame="terminal"
+   aws ec2 wait instance-running \
+     --instance-ids "$INSTANCE_ID" \
+     --region "$AWS_REGION"
+   echo "Instance running"
+   ```
+
+7. **Wait for SSM registration.** <Badge text="Required" variant="tip" size="small" />
+
+   The SSM agent installed on Amazon Linux 2023 registers automatically within about 60 seconds. Poll until the instance appears:
+
+   ```bash frame="terminal"
+   until aws ssm describe-instance-information \
+     --filters "Key=InstanceIds,Values=$INSTANCE_ID" \
+     --region "$AWS_REGION" \
+     --query 'InstanceInformationList[0].InstanceId' \
+     --output text 2>/dev/null | grep -q "^i-"; do
+     echo "Waiting for SSM registration…"
+     sleep 15
+   done
+   echo "SSM registered"
+   ```
+
+   <Aside type="note">
+     If the loop runs longer than 3 minutes, confirm that:
+     - The instance subnet has outbound HTTPS (port 443) — check step 2 and the subnet route table.
+     - The instance profile `s3files-ec2-instance-profile` has `AmazonSSMManagedInstanceCore` attached (added in [IAM](/s3-files-workloads/ec2/setup/iam/)).
+   </Aside>
+
+8. **Open an SSM session.** <Badge text="Required" variant="tip" size="small" />
+
+   ```bash frame="terminal"
+   aws ssm start-session \
+     --target "$INSTANCE_ID" \
+     --region "$AWS_REGION"
+   ```
+
+   You are now in a shell on the instance as `ssm-user`. Continue to [Mount](/s3-files-workloads/ec2/mount/).
+
+</Steps>

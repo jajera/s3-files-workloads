@@ -1,0 +1,37 @@
+---
+description: Keep glossary entries in ascending alphabetical order by key.
+globs: src/data/glossary.ts
+alwaysApply: false
+---
+
+# Glossary conventions
+
+## Entry order
+
+**All entries in `src/data/glossary.ts` must be in ascending alphabetical order by key.**
+
+When adding or editing the `glossary` object:
+
+1. **New entries** — Insert the new key in the correct alphabetical position among existing keys. Do not append at the end unless it is alphabetically last.
+2. **After edits** — If you add or rename a key, re-sort the entire object so keys remain A–Z ascending.
+
+### Example
+
+```ts
+// ✅ GOOD — keys in ascending order
+export const glossary: Record<string, string> = {
+  access-point: '...',
+  csi: '...',
+  iam: '...',
+  nfs: '...',
+};
+
+// ❌ BAD — new entry appended out of order
+export const glossary: Record<string, string> = {
+  iam: '...',
+  nfs: '...',
+  access-point: '...',  // 'access-point' should come before 'iam'
+};
+```
+
+Use the existing keys as the sort reference; keep the same key order as in the current file when making other edits.

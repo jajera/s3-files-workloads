@@ -1,0 +1,30 @@
+---
+title: EC2
+description: Mount an S3 file system on Amazon EC2 using amazon-efs-utils and verify read/write access.
+sidebar:
+  label: Overview
+---
+
+import { CardGrid, LinkCard } from '@astrojs/starlight/components';
+
+Mount an S3 file system on Amazon EC2 using `amazon-efs-utils` v3.0.0+ and the `mount -t s3files` command. Access the instance through **SSM Session Manager** — no SSH key pair or bastion host is required.
+
+Complete [Setup](/s3-files-workloads/ec2/setup/bucket/) before starting here.
+
+<CardGrid>
+  <LinkCard
+    title="Launch & Install"
+    href="/s3-files-workloads/ec2/install-client/"
+    description="Launch an Amazon Linux 2023 instance with the S3 Files compute role, install amazon-efs-utils, and connect via SSM."
+  />
+  <LinkCard
+    title="Mount"
+    href="/s3-files-workloads/ec2/mount/"
+    description="Create the mount point and mount the file system at /mnt/s3files using mount -t s3files."
+  />
+  <LinkCard
+    title="Verify"
+    href="/s3-files-workloads/ec2/verify/"
+    description="Confirm the mount with df and findmnt, then write a test file and verify it appears in S3."
+  />
+</CardGrid>

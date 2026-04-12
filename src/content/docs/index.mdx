@@ -1,0 +1,91 @@
+---
+title: Introduction
+description: Amazon S3 Files lets you mount an S3 bucket as an NFS file system. Learn the prerequisites before starting a walkthrough.
+sidebar:
+  label: Introduction
+---
+
+import { CardGrid, LinkCard, Aside } from '@astrojs/starlight/components';
+
+**Amazon S3 Files** mounts an S3 bucket as an NFS file system inside EC2, ECS Fargate, and Lambda — giving your applications a familiar POSIX file-system interface backed by durable object storage.
+
+This site contains two types of walkthroughs:
+
+- **CLI** — step-by-step AWS CLI commands for EC2 and Lambda. Each section is self-contained and includes its own setup and teardown.
+- **Terraform** — `terraform apply` examples for EC2, ECS Fargate, and Lambda using the [terraform-aws-s3-files](https://github.com/jajera/terraform-aws-s3-files) modules.
+
+---
+
+## Prerequisites
+
+Review these requirements before starting any walkthrough. They apply to both the CLI and Terraform sections.
+
+### S3 bucket
+
+| Requirement | Detail |
+| --- | --- |
+| **Versioning** | Must be enabled — S3 Files uses versioning to synchronise changes between the file system and the bucket. File system creation fails if versioning is off. |
+| **Encryption** | SSE-S3 (`AES256`) or SSE-KMS only. SSE-C (customer-provided keys) and DSSE-KMS are **not supported**. New buckets default to SSE-S3, which works without extra configuration. |
+
+### IAM — two roles required
+
+S3 Files uses exactly two IAM roles:
+
+| Role | Service principal | Purpose |
+| --- | --- | --- |
+| **File system role** | `elasticfilesystem.amazonaws.com` | S3 Files assumes this role to read/write your bucket and manage EventBridge sync rules. The trust policy `aws:SourceArn` must use `arn:aws:s3files:…` — **not** `arn:aws:elasticfilesystem:…`. |
+| **Compute role** | `ec2.amazonaws.com` / `ecs-tasks.amazonaws.com` / `lambda.amazonaws.com` | Your compute resource assumes this role to mount the file system and read objects from S3. |
+
+### Network
+
+NFS port **2049 TCP** must be open between the compute security group and the mount target security group. Mount targets run in the same VPC as your compute resources, one per Availability Zone.
+
+### AWS CLI (for CLI walkthroughs)
+
+The `aws s3files` subcommand requires **AWS CLI v2.34.26 or newer**. Versions v2.34.23 and earlier do not include the `s3files` namespace and return `Found invalid choice 's3files'`. AWS CLI v1 (e.g. installed via `pip install awscli`) never includes S3 Files.
+
+```bash frame="terminal"
+aws --version          # must show 2.34.26 or newer
+aws s3files help       # must list s3files subcommands
+```
+
+### Terraform (for Terraform walkthroughs)
+
+| Requirement | Minimum version |
+| --- | --- |
+| Terraform | 1.5 |
+| AWS provider (`hashicorp/aws`) | 6.40 |
+
+<Aside type="note">
+  The Terraform AWS provider added native S3 Files resources (`aws_s3files_*`) in version **6.40**. Earlier versions do not include these resources.
+</Aside>
+
+### Platform constraints
+
+| Platform | Constraint |
+| --- | --- |
+| EC2 | Requires `amazon-efs-utils` v3.0.0+ for the `mount -t s3files` helper |
+| ECS | **Fargate and Managed Instances only** — EC2 launch type is not supported |
+| Lambda | **Access point required** — Lambda cannot mount by file system ID alone |
+
+---
+
+## Choose a walkthrough
+
+<CardGrid>
+  <LinkCard
+    title="CLI — EC2"
+    href="/s3-files-workloads/ec2/"
+    description="Full CLI walkthrough: bucket, file system, IAM, mount targets, security groups, launch instance, mount, verify, and teardown."
+  />
+  <LinkCard
+    title="CLI — Lambda"
+    href="/s3-files-workloads/lambda/"
+    description="Full CLI walkthrough: bucket, file system, IAM, mount targets, security groups, access point, attach function, verify, and teardown."
+  />
+  <LinkCard
+    title="Terraform"
+    href="/s3-files-workloads/terraform/"
+    description="Provision all S3 Files infrastructure and your compute resource with a single terraform apply. Examples for EC2, ECS Fargate, and Lambda."
+  />
+</CardGrid>
