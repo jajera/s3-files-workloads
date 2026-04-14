@@ -148,13 +148,11 @@
 }
 
 /*
- * starlight-theme-vintage applies extra padding-inline-start to any li+li:has(details)
- * inside a non-top-level ul. This incorrectly indents EC2/Lambda siblings (both are
- * group items with <details> inside CLI's ul) making Lambda appear nested under EC2.
- * Cancel that padding for direct children of top-level group lists.
+ * Keep all first-level items under each top-level section aligned.
+ * This avoids vintage theme's staggered sibling indentation.
  */
-.sidebar-pane .top-level > li > ul > li + li:has(details) {
-  padding-inline-start: 0;
+.sidebar-pane .top-level > li > details > ul > li {
+  padding-inline-start: calc(var(--sl-sidebar-item-padding-inline) * 1.5) !important;
 }
 
 /*

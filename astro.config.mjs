@@ -54,6 +54,34 @@ export default defineConfig({
               'https://jajera.github.io/s3-files-workloads/s3-files-landing-hero.png',
           },
         },
+        {
+          tag: 'script',
+          attrs: { type: 'module' },
+          content: `
+            const sidebar = document.getElementById('starlight__sidebar');
+            if (sidebar) {
+              sidebar.addEventListener('toggle', (event) => {
+                const opened = event.target;
+                if (!(opened instanceof HTMLDetailsElement) || !opened.open) return;
+
+                const item = opened.parentElement;
+                const list = item?.parentElement;
+                if (!(item instanceof HTMLLIElement) || !(list instanceof HTMLUListElement)) return;
+
+                // Only accordion first-level children under a top-level group (e.g. EC2/Lambda under CLI).
+                if (!list.matches('.top-level > li > details > ul')) return;
+
+                for (const sibling of Array.from(list.children)) {
+                  if (!(sibling instanceof HTMLLIElement) || sibling === item) continue;
+                  const siblingDetails = sibling.querySelector(':scope > details');
+                  if (siblingDetails instanceof HTMLDetailsElement) {
+                    siblingDetails.open = false;
+                  }
+                }
+              }, true);
+            }
+          `,
+        },
       ],
       sidebar: [
         { label: 'Introduction', link: '/' },
