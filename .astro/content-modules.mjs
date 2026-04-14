@@ -1,9 +1,9 @@
 
 export default new Map([
+["src/content/docs/ec2/index.mdx", () => import("astro:content-layer-deferred-module?astro%3Acontent-layer-deferred-module=&fileName=src%2Fcontent%2Fdocs%2Fec2%2Findex.mdx&astroContentModuleFlag=true")],
 ["src/content/docs/index.mdx", () => import("astro:content-layer-deferred-module?astro%3Acontent-layer-deferred-module=&fileName=src%2Fcontent%2Fdocs%2Findex.mdx&astroContentModuleFlag=true")],
 ["src/content/docs/ec2/install-client.mdx", () => import("astro:content-layer-deferred-module?astro%3Acontent-layer-deferred-module=&fileName=src%2Fcontent%2Fdocs%2Fec2%2Finstall-client.mdx&astroContentModuleFlag=true")],
 ["src/content/docs/ec2/mount.mdx", () => import("astro:content-layer-deferred-module?astro%3Acontent-layer-deferred-module=&fileName=src%2Fcontent%2Fdocs%2Fec2%2Fmount.mdx&astroContentModuleFlag=true")],
-["src/content/docs/ec2/index.mdx", () => import("astro:content-layer-deferred-module?astro%3Acontent-layer-deferred-module=&fileName=src%2Fcontent%2Fdocs%2Fec2%2Findex.mdx&astroContentModuleFlag=true")],
 ["src/content/docs/ec2/teardown.mdx", () => import("astro:content-layer-deferred-module?astro%3Acontent-layer-deferred-module=&fileName=src%2Fcontent%2Fdocs%2Fec2%2Fteardown.mdx&astroContentModuleFlag=true")],
 ["src/content/docs/ec2/verify.mdx", () => import("astro:content-layer-deferred-module?astro%3Acontent-layer-deferred-module=&fileName=src%2Fcontent%2Fdocs%2Fec2%2Fverify.mdx&astroContentModuleFlag=true")],
 ["src/content/docs/lambda/access-point.mdx", () => import("astro:content-layer-deferred-module?astro%3Acontent-layer-deferred-module=&fileName=src%2Fcontent%2Fdocs%2Flambda%2Faccess-point.mdx&astroContentModuleFlag=true")],
@@ -12,8 +12,8 @@ export default new Map([
 ["src/content/docs/lambda/teardown.mdx", () => import("astro:content-layer-deferred-module?astro%3Acontent-layer-deferred-module=&fileName=src%2Fcontent%2Fdocs%2Flambda%2Fteardown.mdx&astroContentModuleFlag=true")],
 ["src/content/docs/lambda/verify.mdx", () => import("astro:content-layer-deferred-module?astro%3Acontent-layer-deferred-module=&fileName=src%2Fcontent%2Fdocs%2Flambda%2Fverify.mdx&astroContentModuleFlag=true")],
 ["src/content/docs/terraform/ec2.mdx", () => import("astro:content-layer-deferred-module?astro%3Acontent-layer-deferred-module=&fileName=src%2Fcontent%2Fdocs%2Fterraform%2Fec2.mdx&astroContentModuleFlag=true")],
-["src/content/docs/terraform/index.mdx", () => import("astro:content-layer-deferred-module?astro%3Acontent-layer-deferred-module=&fileName=src%2Fcontent%2Fdocs%2Fterraform%2Findex.mdx&astroContentModuleFlag=true")],
 ["src/content/docs/terraform/ecs.mdx", () => import("astro:content-layer-deferred-module?astro%3Acontent-layer-deferred-module=&fileName=src%2Fcontent%2Fdocs%2Fterraform%2Fecs.mdx&astroContentModuleFlag=true")],
+["src/content/docs/terraform/index.mdx", () => import("astro:content-layer-deferred-module?astro%3Acontent-layer-deferred-module=&fileName=src%2Fcontent%2Fdocs%2Fterraform%2Findex.mdx&astroContentModuleFlag=true")],
 ["src/content/docs/terraform/lambda.mdx", () => import("astro:content-layer-deferred-module?astro%3Acontent-layer-deferred-module=&fileName=src%2Fcontent%2Fdocs%2Fterraform%2Flambda.mdx&astroContentModuleFlag=true")],
 ["src/content/docs/ec2/setup/bucket.mdx", () => import("astro:content-layer-deferred-module?astro%3Acontent-layer-deferred-module=&fileName=src%2Fcontent%2Fdocs%2Fec2%2Fsetup%2Fbucket.mdx&astroContentModuleFlag=true")],
 ["src/content/docs/ec2/setup/filesystem.mdx", () => import("astro:content-layer-deferred-module?astro%3Acontent-layer-deferred-module=&fileName=src%2Fcontent%2Fdocs%2Fec2%2Fsetup%2Ffilesystem.mdx&astroContentModuleFlag=true")],
@@ -22,6 +22,7 @@ export default new Map([
 ["src/content/docs/ec2/setup/security-groups.mdx", () => import("astro:content-layer-deferred-module?astro%3Acontent-layer-deferred-module=&fileName=src%2Fcontent%2Fdocs%2Fec2%2Fsetup%2Fsecurity-groups.mdx&astroContentModuleFlag=true")],
 ["src/content/docs/lambda/setup/bucket.mdx", () => import("astro:content-layer-deferred-module?astro%3Acontent-layer-deferred-module=&fileName=src%2Fcontent%2Fdocs%2Flambda%2Fsetup%2Fbucket.mdx&astroContentModuleFlag=true")],
 ["src/content/docs/lambda/setup/filesystem.mdx", () => import("astro:content-layer-deferred-module?astro%3Acontent-layer-deferred-module=&fileName=src%2Fcontent%2Fdocs%2Flambda%2Fsetup%2Ffilesystem.mdx&astroContentModuleFlag=true")],
+["src/content/docs/lambda/setup/iam.mdx", () => import("astro:content-layer-deferred-module?astro%3Acontent-layer-deferred-module=&fileName=src%2Fcontent%2Fdocs%2Flambda%2Fsetup%2Fiam.mdx&astroContentModuleFlag=true")],
 ["src/content/docs/lambda/setup/mount-targets.mdx", () => import("astro:content-layer-deferred-module?astro%3Acontent-layer-deferred-module=&fileName=src%2Fcontent%2Fdocs%2Flambda%2Fsetup%2Fmount-targets.mdx&astroContentModuleFlag=true")],
-["src/content/docs/lambda/setup/security-groups.mdx", () => import("astro:content-layer-deferred-module?astro%3Acontent-layer-deferred-module=&fileName=src%2Fcontent%2Fdocs%2Flambda%2Fsetup%2Fsecurity-groups.mdx&astroContentModuleFlag=true")],
-["src/content/docs/lambda/setup/iam.mdx", () => import("astro:content-layer-deferred-module?astro%3Acontent-layer-deferred-module=&fileName=src%2Fcontent%2Fdocs%2Flambda%2Fsetup%2Fiam.mdx&astroContentModuleFlag=true")]]);
+["src/content/docs/lambda/setup/security-groups.mdx", () => import("astro:content-layer-deferred-module?astro%3Acontent-layer-deferred-module=&fileName=src%2Fcontent%2Fdocs%2Flambda%2Fsetup%2Fsecurity-groups.mdx&astroContentModuleFlag=true")]]);
+		
