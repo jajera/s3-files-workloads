@@ -1,0 +1,41 @@
+---
+description: Open Graph and Twitter Card images for Astro Starlight (Slack, LinkedIn, Discord unfurls). Copy this rule to sibling walkthrough repos and adjust site, base, and image URL.
+globs: "**/astro.config.mjs"
+alwaysApply: false
+---
+
+# Starlight link previews (Open Graph / Twitter)
+
+## What Starlight does by default
+
+`@astrojs/starlight` injects `og:title`, `og:type`, `og:url`, `og:description`, `og:site_name`, `twitter:card` (`summary_large_image`), and `canonical`. It does **not** set `og:image` or `twitter:image`, so link previews often show **no image** until you add them.
+
+## Requirements
+
+- **`og:image` and `twitter:image` must be absolute HTTPS URLs** (not root-relative only). Unfurl crawlers need a full `content` value.
+- Build the URL from `defineConfig({ site })` and `defineConfig({ base })`:
+  - `{siteOrigin}{basePath}/{filename}`
+  - Example: `site: 'https://jajera.github.io'`, `base: '/s3-files-workloads'`, file `public/og-default.png` → `https://jajera.github.io/s3-files-workloads/og-default.png`
+- Put share images in **`public/`** so the URL is stable (not content-hashed like `src/assets` imports). Prefer a dedicated **`public/og-default.png`** (~1200×630) for social cards; keep it separate from in-page hero art if sizes differ.
+
+## Where to configure
+
+- **Global (typical):** `starlight({ head: [ { tag: 'meta', attrs: { property: 'og:image', content: '...' } }, ... ] })` in `astro.config.mjs`.
+- **Per page:** MDX frontmatter `head` array (same shape). Starlight merges entries and replaces duplicate `property` / `name` keys.
+
+## Template: new Starlight + GitHub Pages walkthrough repo
+
+1. Set `site` and `base` in `astro.config.mjs` to match the deployed URL.
+2. Add `public/og-default.png` (or named asset) and commit it.
+3. Add `head` meta entries at minimum:
+   - `property: 'og:image'` → absolute URL
+   - `property: 'og:image:alt'` → short description
+   - `name: 'twitter:image'` → same URL as `og:image`
+4. Optional: `og:image:width` / `og:image:height` ([Facebook image guidelines](https://developers.facebook.com/docs/sharing/webmasters/images/)).
+5. Run `npm run build` and confirm `dist/**/*.html` contains `og:image`.
+6. After deploy, refresh crawler cache ([Facebook Sharing Debugger](https://developers.facebook.com/tools/debug/)); Slack caches unfurls—retry or bump URL if stale.
+
+## Anti-patterns
+
+- Do not rely on **`import.meta.env.BASE_URL` alone** in raw `<meta>` strings for `og:image` unless the final string is still a **full absolute URL** visible in built HTML.
+- Do not point `og:image` at a path that only exists in dev or is blocked by auth.

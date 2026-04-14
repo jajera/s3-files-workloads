@@ -86,6 +86,7 @@ src/content/docs/
 - `site: 'https://jajera.github.io'`
 - `base: '/s3-files-workloads'`
 - All internal links must include the base path, e.g. `/s3-files-workloads/setup/`
+- **Link previews (Slack, LinkedIn, etc.):** `og:image` / `twitter:image` are set via Starlight `head` in `astro.config.mjs`. See `.cursor/rules/starlight-link-preview.mdc` for the checklist and a template you can reuse in sibling walkthrough repos.
 
 ## Default AWS region
 
@@ -107,6 +108,7 @@ Follow `.cursor/rules/` for detailed guidance:
 - `s3files-conventions.mdc` — S3 Files-specific CLI patterns and constraints
 - `glossary.mdc` — alphabetical order for `src/data/glossary.ts`
 - `markdown-tables.mdc` — spaced separator rows required
+- `starlight-link-preview.mdc` — Open Graph / Twitter image meta for social unfurls
 
 ## Sibling repos
 

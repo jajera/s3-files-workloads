@@ -29,6 +29,32 @@ export default defineConfig({
       },
       lastUpdated: true,
       pagination: true,
+      head: [
+        {
+          tag: 'meta',
+          attrs: {
+            property: 'og:image',
+            content:
+              'https://jajera.github.io/s3-files-workloads/s3-files-landing-hero.png',
+          },
+        },
+        {
+          tag: 'meta',
+          attrs: {
+            property: 'og:image:alt',
+            content:
+              'S3 bucket as NFS file system for EC2, ECS, and Lambda workloads',
+          },
+        },
+        {
+          tag: 'meta',
+          attrs: {
+            name: 'twitter:image',
+            content:
+              'https://jajera.github.io/s3-files-workloads/s3-files-landing-hero.png',
+          },
+        },
+      ],
       sidebar: [
         { label: 'Introduction', link: '/' },
         {
