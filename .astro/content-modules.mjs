@@ -1,8 +1,8 @@
 
 export default new Map([
 ["src/content/docs/ec2/index.mdx", () => import("astro:content-layer-deferred-module?astro%3Acontent-layer-deferred-module=&fileName=src%2Fcontent%2Fdocs%2Fec2%2Findex.mdx&astroContentModuleFlag=true")],
-["src/content/docs/index.mdx", () => import("astro:content-layer-deferred-module?astro%3Acontent-layer-deferred-module=&fileName=src%2Fcontent%2Fdocs%2Findex.mdx&astroContentModuleFlag=true")],
 ["src/content/docs/ec2/install-client.mdx", () => import("astro:content-layer-deferred-module?astro%3Acontent-layer-deferred-module=&fileName=src%2Fcontent%2Fdocs%2Fec2%2Finstall-client.mdx&astroContentModuleFlag=true")],
+["src/content/docs/index.mdx", () => import("astro:content-layer-deferred-module?astro%3Acontent-layer-deferred-module=&fileName=src%2Fcontent%2Fdocs%2Findex.mdx&astroContentModuleFlag=true")],
 ["src/content/docs/ec2/mount.mdx", () => import("astro:content-layer-deferred-module?astro%3Acontent-layer-deferred-module=&fileName=src%2Fcontent%2Fdocs%2Fec2%2Fmount.mdx&astroContentModuleFlag=true")],
 ["src/content/docs/ec2/teardown.mdx", () => import("astro:content-layer-deferred-module?astro%3Acontent-layer-deferred-module=&fileName=src%2Fcontent%2Fdocs%2Fec2%2Fteardown.mdx&astroContentModuleFlag=true")],
 ["src/content/docs/ec2/verify.mdx", () => import("astro:content-layer-deferred-module?astro%3Acontent-layer-deferred-module=&fileName=src%2Fcontent%2Fdocs%2Fec2%2Fverify.mdx&astroContentModuleFlag=true")],
