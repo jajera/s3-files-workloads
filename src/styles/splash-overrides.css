@@ -148,6 +148,16 @@
 }
 
 /*
+ * starlight-theme-vintage applies extra padding-inline-start to any li+li:has(details)
+ * inside a non-top-level ul. This incorrectly indents EC2/Lambda siblings (both are
+ * group items with <details> inside CLI's ul) making Lambda appear nested under EC2.
+ * Cancel that padding for direct children of top-level group lists.
+ */
+.sidebar-pane .top-level > li > ul > li + li:has(details) {
+  padding-inline-start: 0;
+}
+
+/*
  * Starlight caps article text at --sl-content-width (45rem when the nav sidebar is shown).
  * Grow the main column on wide viewports so tables and long lines use available space.
  * Pages without a sidebar already get 67.5rem from Starlight — do not override those.
