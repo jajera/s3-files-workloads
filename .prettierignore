@@ -1,4 +1,6 @@
-dist
-node_modules
-.astro
+node_modules/
+dist/
+.astro/
+package-lock.json
 *.min.js
+src/**/*.mdx

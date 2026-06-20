@@ -63,8 +63,14 @@ aws ssm start-session \
    <Aside type="tip">
      Your `FS_ID` was printed during [File System](/s3-files-workloads/ec2/setup/filesystem/) setup.
      If you have lost it, run the following **on your workstation** (not in the SSM session):
-     ```bash frame="terminal" aws s3files list-file-systems \ --bucket "arn:aws:s3:::${BUCKET}" \
-     --region "$AWS_REGION" \ --query 'fileSystems[0].fileSystemId' \ --output text ```
+
+     ```bash frame="terminal"
+     aws s3files list-file-systems \
+       --bucket "arn:aws:s3:::${BUCKET}" \
+       --region "$AWS_REGION" \
+       --query 'fileSystems[0].fileSystemId' \
+       --output text
+     ```
    </Aside>
 
 3. **Create the mount point.** <Badge text="Required" variant="tip" size="small" />
