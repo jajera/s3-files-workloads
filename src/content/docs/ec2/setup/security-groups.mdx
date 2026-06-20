@@ -5,23 +5,28 @@ sidebar:
   label: Security Groups
 ---
 
-import { Steps, Aside, Badge } from '@astrojs/starlight/components';
-import Checklist from '@/components/Checklist.astro';
-import Tooltip from '@/components/Tooltip.astro';
+import { Steps, Aside, Badge } from "@astrojs/starlight/components";
+import Checklist from "@/components/Checklist.astro";
+import Tooltip from "@/components/Tooltip.astro";
 
 <Checklist
   id="ec2-setup-security-groups"
   items={[
-    'Base exports confirmed (AWS_REGION, VPC_ID, MT_SG_ID)',
-    'Compute security group s3files-ec2-compute-sg created; COMPUTE_SG_ID exported',
-    'Outbound NFS on compute SG (port 2049 to mount target SG)',
-    'Inbound NFS on mount target SG (port 2049 from compute SG)',
+    "Base exports confirmed (AWS_REGION, VPC_ID, MT_SG_ID)",
+    "Compute security group s3files-ec2-compute-sg created; COMPUTE_SG_ID exported",
+    "Outbound NFS on compute SG (port 2049 to mount target SG)",
+    "Inbound NFS on mount target SG (port 2049 from compute SG)",
   ]}
 />
 
 ## Overview
 
-<Tooltip term="s3files" /> uses <Tooltip term="nfs" /> over port 2049 TCP. This page **creates** the EC2 compute security group **`s3files-ec2-compute-sg`**, stores its ID in **`COMPUTE_SG_ID`**, and adds the paired rules with **`MT_SG_ID`** from [Mount Targets](/s3-files-workloads/ec2/setup/mount-targets/). The [EC2 — Launch & install](/s3-files-workloads/ec2/install-client/) page **looks up that same group by name** — it does not invent a new SG variable.
+<Tooltip term="s3files" /> uses <Tooltip term="nfs" /> over port 2049 TCP. This page **creates** the
+EC2 compute security group **`s3files-ec2-compute-sg`**, stores its ID in **`COMPUTE_SG_ID`**, and
+adds the paired rules with **`MT_SG_ID`** from [Mount
+Targets](/s3-files-workloads/ec2/setup/mount-targets/). The [EC2 — Launch &
+install](/s3-files-workloads/ec2/install-client/) page **looks up that same group by name** — it
+does not invent a new SG variable.
 
 <Steps>
 
@@ -60,8 +65,10 @@ import Tooltip from '@/components/Tooltip.astro';
    ```
 
    <Aside type="tip">
-     If **`Resource.AlreadyExists`** appears, the group already exists. Resolve the ID instead:  
-     `aws ec2 describe-security-groups --filters "Name=group-name,Values=s3files-ec2-compute-sg" "Name=vpc-id,Values=$VPC_ID" --region $AWS_REGION --query 'SecurityGroups[0].GroupId' --output text`
+     If **`Resource.AlreadyExists`** appears, the group already exists. Resolve the ID instead: `aws
+     ec2 describe-security-groups --filters "Name=group-name,Values=s3files-ec2-compute-sg"
+     "Name=vpc-id,Values=$VPC_ID" --region $AWS_REGION --query 'SecurityGroups[0].GroupId' --output
+     text`
    </Aside>
 
 3. **Allow outbound NFS from the compute security group.** <Badge text="Required" variant="tip" size="small" />

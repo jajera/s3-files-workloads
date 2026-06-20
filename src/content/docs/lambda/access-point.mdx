@@ -5,16 +5,16 @@ sidebar:
   label: Access Point
 ---
 
-import { Steps, Aside, Badge } from '@astrojs/starlight/components';
-import Checklist from '@/components/Checklist.astro';
+import { Steps, Aside, Badge } from "@astrojs/starlight/components";
+import Checklist from "@/components/Checklist.astro";
 
 <Checklist
   id="lambda-access-point"
   items={[
-    'Base exports confirmed (AWS_REGION, BUCKET, BUCKET_ARN, FS_ID)',
-    'Access point created with root directory /lambda and POSIX UID/GID 1000',
-    'AP_ID and AP_ARN exported',
-    'Access point listed as available',
+    "Base exports confirmed (AWS_REGION, BUCKET, BUCKET_ARN, FS_ID)",
+    "Access point created with root directory /lambda and POSIX UID/GID 1000",
+    "AP_ID and AP_ARN exported",
+    "Access point listed as available",
   ]}
 />
 
@@ -57,7 +57,8 @@ Lambda cannot mount an S3 Files file system directly by file system ID — an **
    ```
 
    <Aside type="note">
-     `--client-token` ensures idempotency. If you re-run this command with the same token, the existing access point is returned rather than creating a duplicate.
+     `--client-token` ensures idempotency. If you re-run this command with the same token, the
+     existing access point is returned rather than creating a duplicate.
    </Aside>
 
 3. **Resolve the access point ID.** <Badge text="Required" variant="tip" size="small" />

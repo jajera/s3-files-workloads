@@ -8,12 +8,12 @@ Documentation for [Amazon S3 Files](https://docs.aws.amazon.com/AmazonS3/latest/
 
 An [Astro Starlight](https://starlight.astro.build/) site with per-platform guides: each CLI section includes its own setup (bucket through security groups), mount or attach steps, verify, and teardown. Terraform pages describe the [`terraform-aws-s3-files`](https://github.com/jajera/terraform-aws-s3-files) examples.
 
-| Area | Contents |
-| ---- | -------- |
+| Area             | Contents                                                              |
+| ---------------- | --------------------------------------------------------------------- |
 | **Introduction** | Prerequisites (versioning, SSE, IAM, NFS, CLI and Terraform versions) |
-| **CLI → EC2** | Setup → launch & install → mount → verify → teardown |
-| **CLI → Lambda** | Setup → access point → attach → verify → teardown |
-| **Terraform** | EC2, ECS Fargate, Lambda examples (`terraform apply`) |
+| **CLI → EC2**    | Setup → launch & install → mount → verify → teardown                  |
+| **CLI → Lambda** | Setup → access point → attach → verify → teardown                     |
+| **Terraform**    | EC2, ECS Fargate, Lambda examples (`terraform apply`)                 |
 
 ## Key facts
 

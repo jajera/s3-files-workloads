@@ -5,18 +5,18 @@ sidebar:
   label: ECS Fargate
 ---
 
-import { Steps, Aside, FileTree } from '@astrojs/starlight/components';
-import Checklist from '@/components/Checklist.astro';
+import { Steps, Aside, FileTree } from "@astrojs/starlight/components";
+import Checklist from "@/components/Checklist.astro";
 
 <Checklist
   id="terraform-ecs"
   items={[
-    'Prerequisites confirmed (Terraform >= 1.5, AWS CLI v2.34.26+, AWS credentials)',
-    'Existing ECS cluster name confirmed',
-    'terraform.tfvars created with vpc_id, subnet_ids, and ecs_cluster_name',
-    'terraform apply completed successfully',
-    'ECS task is running',
-    'CloudWatch logs confirm file system mount and listing',
+    "Prerequisites confirmed (Terraform >= 1.5, AWS CLI v2.34.26+, AWS credentials)",
+    "Existing ECS cluster name confirmed",
+    "terraform.tfvars created with vpc_id, subnet_ids, and ecs_cluster_name",
+    "terraform apply completed successfully",
+    "ECS task is running",
+    "CloudWatch logs confirm file system mount and listing",
   ]}
 />
 
@@ -33,223 +33,261 @@ This example provisions:
 - An ECS service running one Fargate task on the existing cluster
 
 <Aside type="caution">
-  S3 Files ECS volumes are supported on **Fargate and Managed Instances only**. The EC2 launch type is not supported.
+  S3 Files ECS volumes are supported on **Fargate and Managed Instances only**. The EC2 launch type
+  is not supported.
 </Aside>
 
 <Aside type="note">
-  The Terraform AWS provider's `aws_ecs_task_definition` resource does not yet support `s3filesVolumeConfiguration` natively. The example uses a `terraform_data + local-exec` block to call `aws ecs register-task-definition` directly, which is why **AWS CLI v2.34.26+** must be installed on the machine running `terraform apply`.
+  The Terraform AWS provider's `aws_ecs_task_definition` resource does not yet support
+  `s3filesVolumeConfiguration` natively. The example uses a `terraform_data + local-exec` block to
+  call `aws ecs register-task-definition` directly, which is why **AWS CLI v2.34.26+** must be
+  installed on the machine running `terraform apply`.
 </Aside>
 
 <Aside type="note">
-  **ECS service wiring (still non-native):** the example runs the service on the **existing** Fargate cluster you pass as `ecs_cluster_name`—it does not create a cluster. The task definition revision the service uses exists only **after** that `local-exec` registration finishes, so the module resolves the task definition ARN from the AWS API (or from provisioner output) rather than from a normal `aws_ecs_task_definition` resource with an inline `s3filesVolumeConfiguration` block.
+  **ECS service wiring (still non-native):** the example runs the service on the **existing**
+  Fargate cluster you pass as `ecs_cluster_name`—it does not create a cluster. The task definition
+  revision the service uses exists only **after** that `local-exec` registration finishes, so the
+  module resolves the task definition ARN from the AWS API (or from provisioner output) rather than
+  from a normal `aws_ecs_task_definition` resource with an inline `s3filesVolumeConfiguration`
+  block.
 </Aside>
 
 <Steps>
 
-1. **Confirm prerequisites.**
+1.  **Confirm prerequisites.**
 
-   | Requirement | Minimum version |
-   | --- | --- |
-   | Terraform | 1.5 |
-   | AWS provider | 6.40 |
-   | AWS CLI | 2.34.26 (called via `local-exec` during `terraform apply`) |
+    | Requirement  | Minimum version                                            |
+    | ------------ | ---------------------------------------------------------- |
+    | Terraform    | 1.5                                                        |
+    | AWS provider | 6.40                                                       |
+    | AWS CLI      | 2.34.26 (called via `local-exec` during `terraform apply`) |
 
-   Confirm the CLI version:
+    Confirm the CLI version:
 
-   ```bash frame="terminal"
-   aws --version
-   ```
+    ```bash frame="terminal"
+    aws --version
+    ```
 
-   You also need an **existing ECS cluster** to deploy into. Confirm it exists:
+    You also need an **existing ECS cluster** to deploy into. Confirm it exists:
 
-   ```bash frame="terminal"
-   aws ecs describe-clusters \
-     --clusters <your-cluster-name> \
-     --region ap-southeast-6 \
-     --query 'clusters[0].status' \
-     --output text
-   ```
+    ```bash frame="terminal"
+    aws ecs describe-clusters \
+      --clusters <your-cluster-name> \
+      --region ap-southeast-6 \
+      --query 'clusters[0].status' \
+      --output text
+    ```
 
-   Expected output: `ACTIVE`
+    Expected output: `ACTIVE`
 
-2. **Clone the example.**
+2.  **Clone the example.**
 
-   ```bash frame="terminal"
-   git clone https://github.com/jajera/terraform-aws-s3-files.git
-   cd terraform-aws-s3-files/examples/ecs
-   ```
+    ```bash frame="terminal"
+    git clone https://github.com/jajera/terraform-aws-s3-files.git
+    cd terraform-aws-s3-files/examples/ecs
+    ```
 
-   <FileTree>
-   - examples/ecs/
-     - main.tf
-     - terraform.tfvars.example
-     - terraform.tfvars _(you create this)_
-   </FileTree>
+    <FileTree>
+      - examples/ecs/ - main.tf - terraform.tfvars.example - terraform.tfvars _(you create this)_
+    </FileTree>
 
-3. **Create `terraform.tfvars`.**
+3.  **Create `terraform.tfvars`.**
 
-   ```bash frame="terminal"
-   cp terraform.tfvars.example terraform.tfvars
-   ```
+    ```bash frame="terminal"
+    cp terraform.tfvars.example terraform.tfvars
+    ```
 
-   Edit `terraform.tfvars`:
+    Edit `terraform.tfvars`:
 
-   ```hcl
-   vpc_id           = "vpc-0123456789abcdef0"
-   subnet_ids       = ["subnet-aaaaaaaaaaaaaaaaa", "subnet-bbbbbbbbbbbbbbbbb"]
-   ecs_cluster_name = "my-cluster"
+    ```hcl
+    vpc_id           = "vpc-0123456789abcdef0"
+    subnet_ids       = ["subnet-aaaaaaaaaaaaaaaaa", "subnet-bbbbbbbbbbbbbbbbb"]
+    ecs_cluster_name = "my-cluster"
 
-   # Optional overrides (defaults shown):
-   # aws_region         = "ap-southeast-6"
-   # container_image    = "public.ecr.aws/amazonlinux/amazonlinux:2023"
-   # log_retention_days = 7
-   # bucket_name        = null   # auto-generated: s3files-demo-<random>
-   # bucket_force_destroy = true
-   ```
+    # Optional overrides (defaults shown):
+    # aws_region         = "ap-southeast-6"
+    # container_image    = "public.ecr.aws/amazonlinux/amazonlinux:2023"
+    # log_retention_days = 7
+    # bucket_name        = null   # auto-generated: s3files-demo-<random>
+    # bucket_force_destroy = true
+    ```
 
-   <div class="wide-table-wrap">
-   <table>
-     <thead>
-       <tr>
-         <th>Variable</th>
-         <th>Default</th>
-         <th>Required</th>
-         <th>Description</th>
-       </tr>
-     </thead>
-     <tbody>
-       <tr>
-         <td><code>vpc_id</code></td>
-         <td>—</td>
-         <td>yes</td>
-         <td>VPC for mount targets and ECS tasks</td>
-       </tr>
-       <tr>
-         <td><code>subnet_ids</code></td>
-         <td>—</td>
-         <td>yes</td>
-         <td>Subnets for mount targets and Fargate task ENIs</td>
-       </tr>
-       <tr>
-         <td><code>ecs_cluster_name</code></td>
-         <td>—</td>
-         <td>yes</td>
-         <td>Name of an existing ECS cluster</td>
-       </tr>
-       <tr>
-         <td><code>aws_region</code></td>
-         <td><code>ap-southeast-6</code></td>
-         <td>no</td>
-         <td>AWS region</td>
-       </tr>
-       <tr>
-         <td><code>container_image</code></td>
-         <td><code>public.ecr.aws/amazonlinux/amazonlinux:2023</code></td>
-         <td>no</td>
-         <td>Container image for the demo task</td>
-       </tr>
-       <tr>
-         <td><code>log_retention_days</code></td>
-         <td><code>7</code></td>
-         <td>no</td>
-         <td>CloudWatch log retention period in days</td>
-       </tr>
-       <tr>
-         <td><code>bucket_name</code></td>
-         <td>auto-generated</td>
-         <td>no</td>
-         <td>Leave <code>null</code> to use <code>s3files-demo-&lt;random&gt;</code></td>
-       </tr>
-       <tr>
-         <td><code>bucket_force_destroy</code></td>
-         <td><code>true</code></td>
-         <td>no</td>
-         <td>Allow destroy even when bucket contains objects</td>
-       </tr>
-     </tbody>
-   </table>
-   </div>
+    <div class="wide-table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Variable</th>
+            <th>Default</th>
+            <th>Required</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>
+              <code>vpc_id</code>
+            </td>
+            <td>—</td>
+            <td>yes</td>
+            <td>VPC for mount targets and ECS tasks</td>
+          </tr>
+          <tr>
+            <td>
+              <code>subnet_ids</code>
+            </td>
+            <td>—</td>
+            <td>yes</td>
+            <td>Subnets for mount targets and Fargate task ENIs</td>
+          </tr>
+          <tr>
+            <td>
+              <code>ecs_cluster_name</code>
+            </td>
+            <td>—</td>
+            <td>yes</td>
+            <td>Name of an existing ECS cluster</td>
+          </tr>
+          <tr>
+            <td>
+              <code>aws_region</code>
+            </td>
+            <td>
+              <code>ap-southeast-6</code>
+            </td>
+            <td>no</td>
+            <td>AWS region</td>
+          </tr>
+          <tr>
+            <td>
+              <code>container_image</code>
+            </td>
+            <td>
+              <code>public.ecr.aws/amazonlinux/amazonlinux:2023</code>
+            </td>
+            <td>no</td>
+            <td>Container image for the demo task</td>
+          </tr>
+          <tr>
+            <td>
+              <code>log_retention_days</code>
+            </td>
+            <td>
+              <code>7</code>
+            </td>
+            <td>no</td>
+            <td>CloudWatch log retention period in days</td>
+          </tr>
+          <tr>
+            <td>
+              <code>bucket_name</code>
+            </td>
+            <td>auto-generated</td>
+            <td>no</td>
+            <td>
+              Leave <code>null</code> to use <code>s3files-demo-&lt;random&gt;</code>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <code>bucket_force_destroy</code>
+            </td>
+            <td>
+              <code>true</code>
+            </td>
+            <td>no</td>
+            <td>Allow destroy even when bucket contains objects</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
 
-4. **Initialise and apply.**
+4.  **Initialise and apply.**
 
-   ```bash frame="terminal"
-   terraform init
-   terraform plan
-   terraform apply
-   ```
+    ```bash frame="terminal"
+    terraform init
+    terraform plan
+    terraform apply
+    ```
 
-   <Aside type="note">
-     During `terraform apply`, the `local-exec` provisioner calls `aws ecs register-task-definition` to register the task definition with `s3filesVolumeConfiguration`. This requires AWS CLI v2.34.26+ on the machine running Terraform.
-   </Aside>
+    <Aside type="note">
+      During `terraform apply`, the `local-exec` provisioner calls `aws ecs
+      register-task-definition` to register the task definition with `s3filesVolumeConfiguration`.
+      This requires AWS CLI v2.34.26+ on the machine running Terraform.
+    </Aside>
 
-   When apply finishes, note the outputs:
+    When apply finishes, note the outputs:
 
-   ```bash frame="terminal"
-   terraform output
-   ```
+    ```bash frame="terminal"
+    terraform output
+    ```
 
-   Key outputs:
+    Key outputs:
 
-   | Output | Description |
-   | --- | --- |
-   | `ecs_service_name` | ECS service name |
-   | `task_definition_family` | ECS task definition family name |
-   | `log_group` | CloudWatch log group (`/ecs/<prefix>-s3files`) |
-   | `file_system_id` | S3 Files file system ID |
-   | `bucket_name` | Backing S3 bucket name |
+    | Output                   | Description                                    |
+    | ------------------------ | ---------------------------------------------- |
+    | `ecs_service_name`       | ECS service name                               |
+    | `task_definition_family` | ECS task definition family name                |
+    | `log_group`              | CloudWatch log group (`/ecs/<prefix>-s3files`) |
+    | `file_system_id`         | S3 Files file system ID                        |
+    | `bucket_name`            | Backing S3 bucket name                         |
 
-5. **Confirm the ECS service is running.**
+5.  **Confirm the ECS service is running.**
 
-   ```bash frame="terminal"
-   aws ecs describe-services \
-     --cluster "$(terraform output -raw ecs_service_name | cut -d- -f1-3)" \
-     --services "$(terraform output -raw ecs_service_name)" \
-     --region ap-southeast-6 \
-     --query 'services[0].{status:status,running:runningCount,desired:desiredCount}'
-   ```
+    ```bash frame="terminal"
+    aws ecs describe-services \
+      --cluster "$(terraform output -raw ecs_service_name | cut -d- -f1-3)" \
+      --services "$(terraform output -raw ecs_service_name)" \
+      --region ap-southeast-6 \
+      --query 'services[0].{status:status,running:runningCount,desired:desiredCount}'
+    ```
 
-   Wait until `runningCount` equals `desiredCount` (1). This can take 2–3 minutes while the mount target becomes available and the container starts.
+    Wait until `runningCount` equals `desiredCount` (1). This can take 2–3 minutes while the mount target becomes available and the container starts.
 
-   <Aside type="note">
-     If the task stops with `STOPPED` reason mentioning the file system, confirm that the mount targets are `available`:
+        <Aside type="note">
 
-     ```bash frame="terminal"
-     aws s3files list-mount-targets \
-       --file-system-id "$(terraform output -raw file_system_id)" \
-       --region ap-southeast-6
-     ```
-   </Aside>
+    If the task stops with `STOPPED` reason mentioning the file system, confirm that the mount targets are `available`:
 
-6. **Verify via CloudWatch Logs.**
+    ```bash frame="terminal"
+    aws s3files list-mount-targets \
+      --file-system-id "$(terraform output -raw file_system_id)" \
+      --region ap-southeast-6
+    ```
 
-   ```bash frame="terminal"
-   aws logs tail \
-     "$(terraform output -raw log_group)" \
-     --follow \
-     --region ap-southeast-6
-   ```
+        </Aside>
 
-   Expected output includes:
+6.  **Verify via CloudWatch Logs.**
 
-   ```
-   ====S3Files-df====
-   Filesystem      Size  Used Avail Use% Mounted on
-   ...              ...   ...   ...  ...  /mnt/s3files
-   ====listing====
-   total 0
-   ====done====
-   ```
+    ```bash frame="terminal"
+    aws logs tail \
+      "$(terraform output -raw log_group)" \
+      --follow \
+      --region ap-southeast-6
+    ```
 
-   Press `Ctrl+C` to stop tailing.
+    Expected output includes:
 
-7. **Tear down.**
+    ```
+    ====S3Files-df====
+    Filesystem      Size  Used Avail Use% Mounted on
+    ...              ...   ...   ...  ...  /mnt/s3files
+    ====listing====
+    total 0
+    ====done====
+    ```
 
-   ```bash frame="terminal"
-   terraform destroy
-   ```
+    Press `Ctrl+C` to stop tailing.
 
-   <Aside type="caution">
-     `terraform destroy` does **not** de-register ECS task definitions (AWS does not support deletion via API). The task definition family remains in your account in `INACTIVE` state after destroy.
-   </Aside>
+7.  **Tear down.**
+
+    ```bash frame="terminal"
+    terraform destroy
+    ```
+
+    <Aside type="caution">
+      `terraform destroy` does **not** de-register ECS task definitions (AWS does not support
+      deletion via API). The task definition family remains in your account in `INACTIVE` state
+      after destroy.
+    </Aside>
 
 </Steps>

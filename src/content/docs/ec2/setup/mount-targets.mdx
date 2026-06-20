@@ -5,17 +5,17 @@ sidebar:
   label: Mount Targets
 ---
 
-import { Steps, Aside, Badge } from '@astrojs/starlight/components';
-import Checklist from '@/components/Checklist.astro';
-import Tooltip from '@/components/Tooltip.astro';
+import { Steps, Aside, Badge } from "@astrojs/starlight/components";
+import Checklist from "@/components/Checklist.astro";
+import Tooltip from "@/components/Tooltip.astro";
 
 <Checklist
   id="ec2-setup-mount-targets"
   items={[
-    'Subnet IDs identified per AZ',
-    'Mount target security group created',
-    'Mount target created in each AZ',
-    'All mount targets in available state',
+    "Subnet IDs identified per AZ",
+    "Mount target security group created",
+    "Mount target created in each AZ",
+    "All mount targets in available state",
   ]}
 />
 
@@ -24,7 +24,10 @@ import Tooltip from '@/components/Tooltip.astro';
 A <Tooltip term="mount-target" /> gives compute resources a network path to the file system within a single <Tooltip term="az" />. Create one per AZ where your EC2 instances run — you can have at most one per AZ.
 
 <Aside type="note">
-  On [EC2 — Launch & install](/s3-files-workloads/ec2/install-client/), the instance subnet can differ from **`SUBNET_ID_AZA`** here as long as it stays in the **same Availability Zone** — that lets Session Manager use a subnet with internet egress while mount targets remain on private subnets.
+  On [EC2 — Launch & install](/s3-files-workloads/ec2/install-client/), the instance subnet can
+  differ from **`SUBNET_ID_AZA`** here as long as it stays in the **same Availability Zone** — that
+  lets Session Manager use a subnet with internet egress while mount targets remain on private
+  subnets.
 </Aside>
 
 <Steps>
@@ -76,7 +79,9 @@ A <Tooltip term="mount-target" /> gives compute resources a network path to the 
    ```
 
    <Aside type="note">
-     The inbound NFS rule (port 2049) is added in the [Security Groups](/s3-files-workloads/ec2/setup/security-groups/) step after you know the compute security group ID.
+     The inbound NFS rule (port 2049) is added in the [Security
+     Groups](/s3-files-workloads/ec2/setup/security-groups/) step after you know the compute
+     security group ID.
    </Aside>
 
 4. **Create a mount target in each AZ.** <Badge text="Required" variant="tip" size="small" />
@@ -98,7 +103,9 @@ A <Tooltip term="mount-target" /> gives compute resources a network path to the 
    Add another `export SUBNET_ID_AZC=subnet-…` for each extra AZ — do not run `create-mount-target` with placeholder subnet IDs.
 
    <Aside type="note">
-     Bash treats **`SUBNET_ID_AZA`** and **`SUBNET_ID_AZa`** as different variables. Use **all-uppercase** `AZA` / `AZB` / `AZC` in both `export` and `$SUBNET_ID_…` references, or `--subnet-id` can end up empty and the CLI returns `expected one argument`.
+     Bash treats **`SUBNET_ID_AZA`** and **`SUBNET_ID_AZa`** as different variables. Use
+     **all-uppercase** `AZA` / `AZB` / `AZC` in both `export` and `$SUBNET_ID_…` references, or
+     `--subnet-id` can end up empty and the CLI returns `expected one argument`.
    </Aside>
 
    Create one mount target per export (at most one mount target per AZ):

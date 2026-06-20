@@ -5,24 +5,26 @@ sidebar:
   label: Bucket
 ---
 
-import { Steps, Aside, Badge } from '@astrojs/starlight/components';
-import Checklist from '@/components/Checklist.astro';
-import Tooltip from '@/components/Tooltip.astro';
+import { Steps, Aside, Badge } from "@astrojs/starlight/components";
+import Checklist from "@/components/Checklist.astro";
+import Tooltip from "@/components/Tooltip.astro";
 
 <Checklist
   id="ec2-setup-bucket"
   items={[
-    'Exports set',
-    'Bucket created',
-    'Versioning enabled',
-    'Encryption confirmed (SSE-S3 or SSE-KMS)',
-    'Demo fixture file uploaded (demo/walkthrough.txt)',
+    "Exports set",
+    "Bucket created",
+    "Versioning enabled",
+    "Encryption confirmed (SSE-S3 or SSE-KMS)",
+    "Demo fixture file uploaded (demo/walkthrough.txt)",
   ]}
 />
 
 ## Overview
 
-<Tooltip term="s3files" /> requires <Tooltip term="versioning" /> to synchronise changes between the file system and the bucket. It also supports only <Tooltip term="sse" /> — specifically SSE-S3 or SSE-KMS. Set both before creating the file system.
+<Tooltip term="s3files" /> requires <Tooltip term="versioning" /> to synchronise changes between the
+file system and the bucket. It also supports only <Tooltip term="sse" /> — specifically SSE-S3 or
+SSE-KMS. Set both before creating the file system.
 
 <Steps>
 
@@ -39,7 +41,9 @@ import Tooltip from '@/components/Tooltip.astro';
    ```
 
    <Aside type="caution">
-     S3 bucket names are **globally unique** across all AWS accounts. If `my-s3-files-bucket` is already taken, `create-bucket` in the next step will fail with `BucketAlreadyExists`. Choose a name that is unique — for example prefix it with your account ID: `$ACCOUNT_ID-s3files-bucket`.
+     S3 bucket names are **globally unique** across all AWS accounts. If `my-s3-files-bucket` is
+     already taken, `create-bucket` in the next step will fail with `BucketAlreadyExists`. Choose a
+     name that is unique — for example prefix it with your account ID: `$ACCOUNT_ID-s3files-bucket`.
    </Aside>
 
 2. **Create the bucket.** <Badge text="Required" variant="tip" size="small" />
@@ -52,7 +56,8 @@ import Tooltip from '@/components/Tooltip.astro';
    ```
 
    <Aside type="note">
-     If your region is `us-east-1`, omit `--create-bucket-configuration` — that region does not accept a `LocationConstraint`.
+     If your region is `us-east-1`, omit `--create-bucket-configuration` — that region does not
+     accept a `LocationConstraint`.
    </Aside>
 
 3. **Enable versioning.** <Badge text="Required" variant="tip" size="small" />
@@ -102,7 +107,8 @@ import Tooltip from '@/components/Tooltip.astro';
    ```
 
    <Aside type="caution">
-     SSE-C (customer-provided keys) and DSSE-KMS are **not supported** by S3 Files. Using an unsupported encryption type will cause file system creation to fail.
+     SSE-C (customer-provided keys) and DSSE-KMS are **not supported** by S3 Files. Using an
+     unsupported encryption type will cause file system creation to fail.
    </Aside>
 
 5. **Seed the `demo/` prefix.** <Badge text="Required" variant="tip" size="small" />

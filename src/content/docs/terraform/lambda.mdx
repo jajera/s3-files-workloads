@@ -5,17 +5,17 @@ sidebar:
   label: Lambda
 ---
 
-import { Steps, Aside, FileTree } from '@astrojs/starlight/components';
-import Checklist from '@/components/Checklist.astro';
+import { Steps, Aside, FileTree } from "@astrojs/starlight/components";
+import Checklist from "@/components/Checklist.astro";
 
 <Checklist
   id="terraform-lambda"
   items={[
-    'Prerequisites confirmed (Terraform >= 1.5, AWS CLI v2.34.26+, AWS credentials)',
-    'terraform.tfvars created with vpc_id and subnet_ids',
-    'terraform apply completed successfully',
-    'Lambda function invoked successfully',
-    '/mnt/s3files listing returned in the response',
+    "Prerequisites confirmed (Terraform >= 1.5, AWS CLI v2.34.26+, AWS credentials)",
+    "terraform.tfvars created with vpc_id and subnet_ids",
+    "terraform apply completed successfully",
+    "Lambda function invoked successfully",
+    "/mnt/s3files listing returned in the response",
   ]}
 />
 
@@ -32,19 +32,20 @@ This example provisions:
 - A Python 3.14 Lambda function that lists `/mnt/s3files`
 
 <Aside type="caution">
-  Lambda **requires an access point** — it cannot mount an S3 Files file system by file system ID alone. The example creates one automatically at root directory `/lambda` with POSIX UID/GID 1000.
+  Lambda **requires an access point** — it cannot mount an S3 Files file system by file system ID
+  alone. The example creates one automatically at root directory `/lambda` with POSIX UID/GID 1000.
 </Aside>
 
 <Steps>
 
 1. **Confirm prerequisites.**
 
-   | Requirement | Minimum version |
-   | --- | --- |
-   | Terraform | 1.5 |
-   | AWS provider | 6.40 |
-   | archive provider | 2.4 |
-   | AWS CLI | 2.34.26 |
+   | Requirement      | Minimum version |
+   | ---------------- | --------------- |
+   | Terraform        | 1.5             |
+   | AWS provider     | 6.40            |
+   | archive provider | 2.4             |
+   | AWS CLI          | 2.34.26         |
 
    Confirm the CLI version:
 
@@ -62,10 +63,7 @@ This example provisions:
    ```
 
    <FileTree>
-   - examples/lambda/
-     - main.tf
-     - terraform.tfvars.example
-     - terraform.tfvars _(you create this)_
+     - examples/lambda/ - main.tf - terraform.tfvars.example - terraform.tfvars _(you create this)_
    </FileTree>
 
    The Lambda function code is generated inline by Terraform using the `archive` provider — no separate function file is needed.
@@ -89,14 +87,14 @@ This example provisions:
    # bucket_force_destroy = true
    ```
 
-   | Variable | Default | Required | Description |
-   | --- | --- | --- | --- |
-   | `vpc_id` | — | yes | VPC for mount targets and Lambda ENIs |
-   | `subnet_ids` | — | yes | Subnets for mount targets and Lambda (must have NAT or VPC endpoints) |
-   | `aws_region` | `ap-southeast-6` | no | AWS region |
-   | `log_retention_days` | `7` | no | CloudWatch log retention period in days |
-   | `bucket_name` | auto-generated | no | Leave `null` to use `s3files-demo-<random>` |
-   | `bucket_force_destroy` | `true` | no | Allow destroy even when bucket contains objects |
+   | Variable               | Default          | Required | Description                                                           |
+   | ---------------------- | ---------------- | -------- | --------------------------------------------------------------------- |
+   | `vpc_id`               | —                | yes      | VPC for mount targets and Lambda ENIs                                 |
+   | `subnet_ids`           | —                | yes      | Subnets for mount targets and Lambda (must have NAT or VPC endpoints) |
+   | `aws_region`           | `ap-southeast-6` | no       | AWS region                                                            |
+   | `log_retention_days`   | `7`              | no       | CloudWatch log retention period in days                               |
+   | `bucket_name`          | auto-generated   | no       | Leave `null` to use `s3files-demo-<random>`                           |
+   | `bucket_force_destroy` | `true`           | no       | Allow destroy even when bucket contains objects                       |
 
 4. **Initialise and apply.**
 
@@ -107,7 +105,9 @@ This example provisions:
    ```
 
    <Aside type="note">
-     `terraform apply` creates all S3 Files infrastructure, the access point, and the Lambda function. The archive provider packages the inline Python handler into `lambda.zip` locally. Allow 3–5 minutes for mount targets to become available before invoking the function.
+     `terraform apply` creates all S3 Files infrastructure, the access point, and the Lambda
+     function. The archive provider packages the inline Python handler into `lambda.zip` locally.
+     Allow 3–5 minutes for mount targets to become available before invoking the function.
    </Aside>
 
    When apply finishes, note the outputs:
@@ -118,12 +118,12 @@ This example provisions:
 
    Key outputs:
 
-   | Output | Description |
-   | --- | --- |
-   | `lambda_function_name` | Lambda function name |
-   | `file_system_id` | S3 Files file system ID |
-   | `access_point_arn` | ARN of the S3 Files access point |
-   | `bucket_name` | Backing S3 bucket name |
+   | Output                 | Description                      |
+   | ---------------------- | -------------------------------- |
+   | `lambda_function_name` | Lambda function name             |
+   | `file_system_id`       | S3 Files file system ID          |
+   | `access_point_arn`     | ARN of the S3 Files access point |
+   | `bucket_name`          | Backing S3 bucket name           |
 
 5. **Invoke the function.**
 
@@ -137,7 +137,8 @@ This example provisions:
    ```
 
    <Aside type="note">
-     The first invocation may return a cold-start error if the mount target is still provisioning. Wait 2–3 minutes and retry if you receive a timeout or mount-related error.
+     The first invocation may return a cold-start error if the mount target is still provisioning.
+     Wait 2–3 minutes and retry if you receive a timeout or mount-related error.
    </Aside>
 
 6. **Verify the response.**
@@ -145,7 +146,7 @@ This example provisions:
    Expected response body:
 
    ```json
-   {"statusCode": 200, "body": "[]"}
+   { "statusCode": 200, "body": "[]" }
    ```
 
    The empty list `[]` is correct — the file system is empty at this point. Write a file via the S3 CLI and invoke again to see it appear:
@@ -173,7 +174,8 @@ This example provisions:
    ```
 
    <Aside type="caution">
-     `bucket_force_destroy = true` (the default) means `terraform destroy` deletes the bucket and all its objects. Set it to `false` before apply if you need to preserve the bucket contents.
+     `bucket_force_destroy = true` (the default) means `terraform destroy` deletes the bucket and
+     all its objects. Set it to `false` before apply if you need to preserve the bucket contents.
    </Aside>
 
 </Steps>

@@ -5,17 +5,17 @@ sidebar:
   label: EC2
 ---
 
-import { Steps, Aside, FileTree } from '@astrojs/starlight/components';
-import Checklist from '@/components/Checklist.astro';
+import { Steps, Aside, FileTree } from "@astrojs/starlight/components";
+import Checklist from "@/components/Checklist.astro";
 
 <Checklist
   id="terraform-ec2"
   items={[
-    'Prerequisites confirmed (Terraform >= 1.5, AWS CLI v2.34.26+, AWS credentials)',
-    'terraform.tfvars created with vpc_id and subnet_ids',
-    'terraform apply completed successfully',
-    'EC2 instance reachable via SSM Session Manager',
-    'File system mounted and visible at /mnt/s3files',
+    "Prerequisites confirmed (Terraform >= 1.5, AWS CLI v2.34.26+, AWS credentials)",
+    "terraform.tfvars created with vpc_id and subnet_ids",
+    "terraform apply completed successfully",
+    "EC2 instance reachable via SSM Session Manager",
+    "File system mounted and visible at /mnt/s3files",
   ]}
 />
 
@@ -35,11 +35,11 @@ Access to the instance is through **SSM Session Manager** — no SSH key pair or
 
 1. **Confirm prerequisites.**
 
-   | Requirement | Minimum version |
-   | --- | --- |
-   | Terraform | 1.5 |
-   | AWS provider | 6.40 |
-   | AWS CLI | 2.34.26 (for `aws ssm start-session`) |
+   | Requirement  | Minimum version                       |
+   | ------------ | ------------------------------------- |
+   | Terraform    | 1.5                                   |
+   | AWS provider | 6.40                                  |
+   | AWS CLI      | 2.34.26 (for `aws ssm start-session`) |
 
    Install the Session Manager plugin if not already present:
 
@@ -59,10 +59,7 @@ Access to the instance is through **SSM Session Manager** — no SSH key pair or
    The example directory contains:
 
    <FileTree>
-   - examples/ec2/
-     - main.tf
-     - terraform.tfvars.example
-     - terraform.tfvars _(you create this)_
+     - examples/ec2/ - main.tf - terraform.tfvars.example - terraform.tfvars _(you create this)_
    </FileTree>
 
 3. **Create `terraform.tfvars`.**
@@ -86,15 +83,15 @@ Access to the instance is through **SSM Session Manager** — no SSH key pair or
    # bucket_force_destroy = true
    ```
 
-   | Variable | Default | Required | Description |
-   | --- | --- | --- | --- |
-   | `vpc_id` | — | yes | VPC for mount targets and EC2 instance |
-   | `subnet_ids` | — | yes | Subnets for mount targets (one per AZ recommended) |
-   | `instance_subnet_id` | first `subnet_ids` entry | no | Subnet for the EC2 instance |
-   | `aws_region` | `ap-southeast-6` | no | AWS region |
-   | `instance_type` | `t3.micro` | no | EC2 instance type |
-   | `bucket_name` | auto-generated | no | Leave `null` to use `s3files-demo-<random>` |
-   | `bucket_force_destroy` | `true` | no | Allow destroy even when bucket contains objects |
+   | Variable               | Default                  | Required | Description                                        |
+   | ---------------------- | ------------------------ | -------- | -------------------------------------------------- |
+   | `vpc_id`               | —                        | yes      | VPC for mount targets and EC2 instance             |
+   | `subnet_ids`           | —                        | yes      | Subnets for mount targets (one per AZ recommended) |
+   | `instance_subnet_id`   | first `subnet_ids` entry | no       | Subnet for the EC2 instance                        |
+   | `aws_region`           | `ap-southeast-6`         | no       | AWS region                                         |
+   | `instance_type`        | `t3.micro`               | no       | EC2 instance type                                  |
+   | `bucket_name`          | auto-generated           | no       | Leave `null` to use `s3files-demo-<random>`        |
+   | `bucket_force_destroy` | `true`                   | no       | Allow destroy even when bucket contains objects    |
 
 4. **Initialise and apply.**
 
@@ -105,7 +102,9 @@ Access to the instance is through **SSM Session Manager** — no SSH key pair or
    ```
 
    <Aside type="note">
-     `terraform apply` creates the file system, waits for mount targets to become available, and launches the EC2 instance. The user data script installs `amazon-efs-utils` and mounts the file system. Allow 3–5 minutes for the instance to reach a ready state after the apply completes.
+     `terraform apply` creates the file system, waits for mount targets to become available, and
+     launches the EC2 instance. The user data script installs `amazon-efs-utils` and mounts the file
+     system. Allow 3–5 minutes for the instance to reach a ready state after the apply completes.
    </Aside>
 
    When apply finishes, note the outputs:
@@ -116,12 +115,12 @@ Access to the instance is through **SSM Session Manager** — no SSH key pair or
 
    Key outputs:
 
-   | Output | Description |
-   | --- | --- |
-   | `instance_id` | EC2 instance ID (`i-…`) |
-   | `file_system_id` | S3 Files file system ID |
-   | `bucket_name` | Backing S3 bucket name |
-   | `ami_id` | Amazon Linux 2023 AMI used |
+   | Output           | Description                |
+   | ---------------- | -------------------------- |
+   | `instance_id`    | EC2 instance ID (`i-…`)    |
+   | `file_system_id` | S3 Files file system ID    |
+   | `bucket_name`    | Backing S3 bucket name     |
+   | `ami_id`         | Amazon Linux 2023 AMI used |
 
 5. **Connect via SSM Session Manager.**
 
@@ -132,7 +131,8 @@ Access to the instance is through **SSM Session Manager** — no SSH key pair or
    ```
 
    <Aside type="note">
-     If the session fails immediately with `TargetNotConnected`, the SSM agent may still be starting. Wait 60 seconds and retry. The instance must reach SSM before user data completes.
+     If the session fails immediately with `TargetNotConnected`, the SSM agent may still be
+     starting. Wait 60 seconds and retry. The instance must reach SSM before user data completes.
    </Aside>
 
 6. **Verify the mount.**
@@ -164,7 +164,9 @@ Access to the instance is through **SSM Session Manager** — no SSH key pair or
    ```
 
    <Aside type="caution">
-     `bucket_force_destroy = true` (the default) means `terraform destroy` deletes the bucket and all its objects, including all S3 versioning history. Set it to `false` before apply if you need to preserve the bucket.
+     `bucket_force_destroy = true` (the default) means `terraform destroy` deletes the bucket and
+     all its objects, including all S3 versioning history. Set it to `false` before apply if you
+     need to preserve the bucket.
    </Aside>
 
 </Steps>

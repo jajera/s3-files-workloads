@@ -38,10 +38,10 @@ sudo mount -t s3files $FS_ID:/ /mnt/s3files
 
 ### Two IAM roles (both required)
 
-| Role | Service principal | Purpose |
-| ---- | ---------------- | ------- |
-| File system role | `elasticfilesystem.amazonaws.com` | S3 Files reads/writes S3 bucket + manages EventBridge sync |
-| Compute role | EC2 instance profile / ECS task role / Lambda exec role | Compute mounts file system and reads objects directly |
+| Role             | Service principal                                       | Purpose                                                    |
+| ---------------- | ------------------------------------------------------- | ---------------------------------------------------------- |
+| File system role | `elasticfilesystem.amazonaws.com`                       | S3 Files reads/writes S3 bucket + manages EventBridge sync |
+| Compute role     | EC2 instance profile / ECS task role / Lambda exec role | Compute mounts file system and reads objects directly      |
 
 ### Bucket prerequisites
 
@@ -50,12 +50,12 @@ sudo mount -t s3files $FS_ID:/ /mnt/s3files
 
 ### Per-platform constraints
 
-| Platform | Constraint |
-| -------- | ---------- |
-| EC2 | Requires `amazon-efs-utils` v3.0.0+ |
-| EKS | Uses Amazon EFS CSI driver (`aws-efs-csi-driver`) |
-| ECS | **Fargate and Managed Instances only — EC2 launch type not supported** |
-| Lambda | **Access point required** — cannot mount by file system ID alone |
+| Platform | Constraint                                                             |
+| -------- | ---------------------------------------------------------------------- |
+| EC2      | Requires `amazon-efs-utils` v3.0.0+                                    |
+| EKS      | Uses Amazon EFS CSI driver (`aws-efs-csi-driver`)                      |
+| ECS      | **Fargate and Managed Instances only — EC2 launch type not supported** |
+| Lambda   | **Access point required** — cannot mount by file system ID alone       |
 
 ### Security group port
 

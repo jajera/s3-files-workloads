@@ -5,20 +5,20 @@ sidebar:
   label: File System
 ---
 
-import { Steps, Aside, Badge } from '@astrojs/starlight/components';
-import Checklist from '@/components/Checklist.astro';
-import Tooltip from '@/components/Tooltip.astro';
+import { Steps, Aside, Badge } from "@astrojs/starlight/components";
+import Checklist from "@/components/Checklist.astro";
+import Tooltip from "@/components/Tooltip.astro";
 
 <Checklist
   id="lambda-setup-filesystem"
   items={[
-    'Base exports confirmed (AWS_REGION, ACCOUNT_ID, BUCKET, BUCKET_ARN)',
-    'File system IAM role created (trust policy)',
-    'File system inline policy attached (S3, KMS, EventBridge)',
-    'File system role verified',
-    'File system created',
-    'File system ID exported',
-    'File system status confirmed available',
+    "Base exports confirmed (AWS_REGION, ACCOUNT_ID, BUCKET, BUCKET_ARN)",
+    "File system IAM role created (trust policy)",
+    "File system inline policy attached (S3, KMS, EventBridge)",
+    "File system role verified",
+    "File system created",
+    "File system ID exported",
+    "File system status confirmed available",
   ]}
 />
 
@@ -27,225 +27,246 @@ import Tooltip from '@/components/Tooltip.astro';
 The <Tooltip term="s3files" /> file system links your bucket to a mountable NFS endpoint. Before creating it you must create the IAM role S3 Files assumes to read and write your bucket — both steps are on this page.
 
 <Aside type="caution">
-  If `aws s3files` fails with `Found invalid choice 's3files'`, your AWS CLI v2 is below **2.34.26**, or you are on **AWS CLI v1** (for example from `pip`). Run `aws --version` and `aws s3files help` to confirm you meet the minimum version before continuing.
+  If `aws s3files` fails with `Found invalid choice 's3files'`, your AWS CLI v2 is below
+  **2.34.26**, or you are on **AWS CLI v1** (for example from `pip`). Run `aws --version` and `aws
+  s3files help` to confirm you meet the minimum version before continuing.
 </Aside>
 
 <Steps>
 
-1. **Confirm base exports.** <Badge text="Required" variant="tip" size="small" />
+1.  **Confirm base exports.** <Badge text="Required" variant="tip" size="small" />
 
-   Re-run these in your current shell. **Replace `my-s3-files-bucket` with the exact name of the bucket you created in the Bucket step** — this value is embedded in the IAM policy resource ARNs written in steps 2–3. Using the wrong name here is the most common cause of the file system getting stuck in `creating`.
+    Re-run these in your current shell. **Replace `my-s3-files-bucket` with the exact name of the bucket you created in the Bucket step** — this value is embedded in the IAM policy resource ARNs written in steps 2–3. Using the wrong name here is the most common cause of the file system getting stuck in `creating`.
 
-   ```bash frame="terminal"
-   export AWS_REGION=ap-southeast-6
-   export BUCKET=my-s3-files-bucket        # ← replace with your real bucket name
-   export BUCKET_ARN=arn:aws:s3:::${BUCKET}
-   export ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-   echo "Account: $ACCOUNT_ID  Region: $AWS_REGION  Bucket: $BUCKET  ARN: $BUCKET_ARN"
-   ```
+    ```bash frame="terminal"
+    export AWS_REGION=ap-southeast-6
+    export BUCKET=my-s3-files-bucket        # ← replace with your real bucket name
+    export BUCKET_ARN=arn:aws:s3:::${BUCKET}
+    export ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+    echo "Account: $ACCOUNT_ID  Region: $AWS_REGION  Bucket: $BUCKET  ARN: $BUCKET_ARN"
+    ```
 
-   Confirm the echo output shows your real bucket name (not the placeholder) before continuing.
+    Confirm the echo output shows your real bucket name (not the placeholder) before continuing.
 
-   If the bucket does not exist yet, complete [Bucket](/s3-files-workloads/lambda/setup/bucket/) first.
+    If the bucket does not exist yet, complete [Bucket](/s3-files-workloads/lambda/setup/bucket/) first.
 
-2. **Create the IAM role S3 Files assumes (trust policy).** <Badge text="Required" variant="tip" size="small" />
+2.  **Create the IAM role S3 Files assumes (trust policy).** <Badge text="Required" variant="tip" size="small" />
 
-   This role allows **`elasticfilesystem.amazonaws.com`** to assume it, scoped to this account and region. The heredoc uses **unquoted** `<<EOF` so the shell expands `${ACCOUNT_ID}` and `${AWS_REGION}` — do not use `<<'EOF'`.
+    This role allows **`elasticfilesystem.amazonaws.com`** to assume it, scoped to this account and region. The heredoc uses **unquoted** `<<EOF` so the shell expands `${ACCOUNT_ID}` and `${AWS_REGION}` — do not use `<<'EOF'`.
 
-   ```bash frame="terminal" title="fs-trust-policy.json"
-   cat > /tmp/fs-trust-policy.json <<EOF
-   {
-     "Version": "2012-10-17",
-     "Statement": [{
-       "Sid": "AllowS3FilesAssumeRole",
-       "Effect": "Allow",
-       "Principal": { "Service": "elasticfilesystem.amazonaws.com" },
-       "Action": "sts:AssumeRole",
-       "Condition": {
-         "StringEquals": { "aws:SourceAccount": "${ACCOUNT_ID}" },
-         "ArnLike": {
-           "aws:SourceArn": "arn:aws:s3files:${AWS_REGION}:${ACCOUNT_ID}:file-system/*"
-         }
-       }
-     }]
-   }
-   EOF
-   ```
+    ```bash frame="terminal" title="fs-trust-policy.json"
+    cat > /tmp/fs-trust-policy.json <<EOF
+    {
+      "Version": "2012-10-17",
+      "Statement": [{
+        "Sid": "AllowS3FilesAssumeRole",
+        "Effect": "Allow",
+        "Principal": { "Service": "elasticfilesystem.amazonaws.com" },
+        "Action": "sts:AssumeRole",
+        "Condition": {
+          "StringEquals": { "aws:SourceAccount": "${ACCOUNT_ID}" },
+          "ArnLike": {
+            "aws:SourceArn": "arn:aws:s3files:${AWS_REGION}:${ACCOUNT_ID}:file-system/*"
+          }
+        }
+      }]
+    }
+    EOF
+    ```
 
-   ```bash frame="terminal"
-   aws iam create-role \
-     --role-name s3files-filesystem-role \
-     --assume-role-policy-document file:///tmp/fs-trust-policy.json
-   ```
+    ```bash frame="terminal"
+    aws iam create-role \
+      --role-name s3files-filesystem-role \
+      --assume-role-policy-document file:///tmp/fs-trust-policy.json
+    ```
 
-   Verify the trust policy expanded correctly — you must see your account ID digits and region code, not literal `${ACCOUNT_ID}`:
+    Verify the trust policy expanded correctly — you must see your account ID digits and region code, not literal `${ACCOUNT_ID}`:
 
-   ```bash frame="terminal"
-   aws iam get-role \
-     --role-name s3files-filesystem-role \
-     --query 'Role.AssumeRolePolicyDocument' \
-     --output json
-   ```
+    ```bash frame="terminal"
+    aws iam get-role \
+      --role-name s3files-filesystem-role \
+      --query 'Role.AssumeRolePolicyDocument' \
+      --output json
+    ```
 
-   <Aside type="caution">
-     **Trust policy `aws:SourceArn` must use the `s3files` ARN, not `elasticfilesystem`.** The **principal** is `elasticfilesystem.amazonaws.com`, but the **condition** must match how AWS identifies S3 Files file systems: `arn:aws:s3files:REGION:ACCOUNT_ID:file-system/*`. If you use `arn:aws:elasticfilesystem:…:file-system/*` (a common mistake when reusing EFS examples), assume-role or sync can fail and the console may show **Unknown Error** on **Synchronization configuration** even when the file system reaches `available`. Fix with `update-assume-role-policy` using the JSON from this step, then wait briefly and refresh the console.
-   </Aside>
+    <Aside type="caution">
+      **Trust policy `aws:SourceArn` must use the `s3files` ARN, not `elasticfilesystem`.** The
+      **principal** is `elasticfilesystem.amazonaws.com`, but the **condition** must match how AWS
+      identifies S3 Files file systems: `arn:aws:s3files:REGION:ACCOUNT_ID:file-system/*`. If you
+      use `arn:aws:elasticfilesystem:…:file-system/*` (a common mistake when reusing EFS examples),
+      assume-role or sync can fail and the console may show **Unknown Error** on **Synchronization
+      configuration** even when the file system reaches `available`. Fix with
+      `update-assume-role-policy` using the JSON from this step, then wait briefly and refresh the
+      console.
+    </Aside>
 
-   <Aside type="note">
-     If the role already exists from a previous attempt, skip `create-role` and go straight to the next step to re-apply the inline policy.
-   </Aside>
+    <Aside type="note">
+      If the role already exists from a previous attempt, skip `create-role` and go straight to the
+      next step to re-apply the inline policy.
+    </Aside>
 
-3. **Attach the file system inline policy (S3, KMS, EventBridge).** <Badge text="Required" variant="tip" size="small" />
+3.  **Attach the file system inline policy (S3, KMS, EventBridge).** <Badge text="Required" variant="tip" size="small" />
 
-   This grants S3 Files read/write access to the bucket, optional SSE-KMS key use, and EventBridge sync rule management, following the [AWS prerequisites for S3 Files](https://docs.aws.amazon.com/AmazonS3/latest/userguide/s3-files-prereq-policies.html#s3-files-prereq-iam-creation-role).
+    This grants S3 Files read/write access to the bucket, optional SSE-KMS key use, and EventBridge sync rule management, following the [AWS prerequisites for S3 Files](https://docs.aws.amazon.com/AmazonS3/latest/userguide/s3-files-prereq-policies.html#s3-files-prereq-iam-creation-role).
 
-   <Aside type="note">
-     If the bucket uses **SSE-S3 only**, remove the `UseKmsKeyWithS3Files` statement before running `put-role-policy` — it is only required for **SSE-KMS** buckets.
-   </Aside>
+    <Aside type="note">
+      If the bucket uses **SSE-S3 only**, remove the `UseKmsKeyWithS3Files` statement before running
+      `put-role-policy` — it is only required for **SSE-KMS** buckets.
+    </Aside>
 
-   ```bash frame="terminal" title="fs-inline-policy.json"
-   cat > /tmp/fs-inline-policy.json <<EOF
-   {
-     "Version": "2012-10-17",
-     "Statement": [
+    ```bash frame="terminal" title="fs-inline-policy.json"
+    cat > /tmp/fs-inline-policy.json <<EOF
+    {
+      "Version": "2012-10-17",
+      "Statement": [
+        {
+          "Sid": "S3BucketPermissions",
+          "Effect": "Allow",
+          "Action": ["s3:ListBucket", "s3:ListBucketVersions"],
+          "Resource": "${BUCKET_ARN}",
+          "Condition": { "StringEquals": { "aws:ResourceAccount": "${ACCOUNT_ID}" } }
+        },
        {
-         "Sid": "S3BucketPermissions",
+         "Sid": "S3ObjectPermissions",
          "Effect": "Allow",
-         "Action": ["s3:ListBucket", "s3:ListBucketVersions"],
-         "Resource": "${BUCKET_ARN}",
+         "Action": ["s3:AbortMultipartUpload", "s3:DeleteObject*", "s3:GetObject*", "s3:HeadObject", "s3:List*", "s3:PutObject*"],
+         "Resource": "${BUCKET_ARN}/*",
          "Condition": { "StringEquals": { "aws:ResourceAccount": "${ACCOUNT_ID}" } }
        },
-      {
-        "Sid": "S3ObjectPermissions",
-        "Effect": "Allow",
-        "Action": ["s3:AbortMultipartUpload", "s3:DeleteObject*", "s3:GetObject*", "s3:HeadObject", "s3:List*", "s3:PutObject*"],
-        "Resource": "${BUCKET_ARN}/*",
-        "Condition": { "StringEquals": { "aws:ResourceAccount": "${ACCOUNT_ID}" } }
-      },
-       {
-         "Sid": "UseKmsKeyWithS3Files",
-         "Effect": "Allow",
-         "Action": ["kms:GenerateDataKey", "kms:Encrypt", "kms:Decrypt", "kms:ReEncryptFrom", "kms:ReEncryptTo"],
-         "Condition": {
-           "StringLike": {
-             "kms:ViaService": "s3.${AWS_REGION}.amazonaws.com",
-             "kms:EncryptionContext:aws:s3:arn": ["${BUCKET_ARN}", "${BUCKET_ARN}/*"]
-           }
-         },
-         "Resource": "arn:aws:kms:${AWS_REGION}:${ACCOUNT_ID}:*"
-       },
-       {
-         "Sid": "EventBridgeManage",
-         "Effect": "Allow",
-         "Action": ["events:DeleteRule", "events:DisableRule", "events:EnableRule", "events:PutRule", "events:PutTargets", "events:RemoveTargets"],
-         "Condition": { "StringEquals": { "events:ManagedBy": "elasticfilesystem.amazonaws.com" } },
-         "Resource": ["arn:aws:events:*:*:rule/DO-NOT-DELETE-S3-Files*"]
-       },
-       {
-         "Sid": "EventBridgeRead",
-         "Effect": "Allow",
-         "Action": ["events:DescribeRule", "events:ListRuleNamesByTarget", "events:ListRules", "events:ListTargetsByRule"],
-         "Resource": ["arn:aws:events:*:*:rule/*"]
-       }
-     ]
-   }
-   EOF
-   ```
+        {
+          "Sid": "UseKmsKeyWithS3Files",
+          "Effect": "Allow",
+          "Action": ["kms:GenerateDataKey", "kms:Encrypt", "kms:Decrypt", "kms:ReEncryptFrom", "kms:ReEncryptTo"],
+          "Condition": {
+            "StringLike": {
+              "kms:ViaService": "s3.${AWS_REGION}.amazonaws.com",
+              "kms:EncryptionContext:aws:s3:arn": ["${BUCKET_ARN}", "${BUCKET_ARN}/*"]
+            }
+          },
+          "Resource": "arn:aws:kms:${AWS_REGION}:${ACCOUNT_ID}:*"
+        },
+        {
+          "Sid": "EventBridgeManage",
+          "Effect": "Allow",
+          "Action": ["events:DeleteRule", "events:DisableRule", "events:EnableRule", "events:PutRule", "events:PutTargets", "events:RemoveTargets"],
+          "Condition": { "StringEquals": { "events:ManagedBy": "elasticfilesystem.amazonaws.com" } },
+          "Resource": ["arn:aws:events:*:*:rule/DO-NOT-DELETE-S3-Files*"]
+        },
+        {
+          "Sid": "EventBridgeRead",
+          "Effect": "Allow",
+          "Action": ["events:DescribeRule", "events:ListRuleNamesByTarget", "events:ListRules", "events:ListTargetsByRule"],
+          "Resource": ["arn:aws:events:*:*:rule/*"]
+        }
+      ]
+    }
+    EOF
+    ```
 
-   ```bash frame="terminal"
-   aws iam put-role-policy \
-     --role-name s3files-filesystem-role \
-     --policy-name S3FilesFileSystemPolicy \
-     --policy-document file:///tmp/fs-inline-policy.json
-   ```
+    ```bash frame="terminal"
+    aws iam put-role-policy \
+      --role-name s3files-filesystem-role \
+      --policy-name S3FilesFileSystemPolicy \
+      --policy-document file:///tmp/fs-inline-policy.json
+    ```
 
-4. **Verify the file system role is ready.** <Badge text="Required" variant="tip" size="small" />
+4.  **Verify the file system role is ready.** <Badge text="Required" variant="tip" size="small" />
 
-   ```bash frame="terminal"
-   aws iam get-role-policy \
-     --role-name s3files-filesystem-role \
-     --policy-name S3FilesFileSystemPolicy \
-     --query 'PolicyDocument.Statement[0:2]' \
-     --output json
-   ```
+    ```bash frame="terminal"
+    aws iam get-role-policy \
+      --role-name s3files-filesystem-role \
+      --policy-name S3FilesFileSystemPolicy \
+      --query 'PolicyDocument.Statement[0:2]' \
+      --output json
+    ```
 
-   Check that both `Resource` values contain your **real bucket name**, not `my-s3-files-bucket`:
+    Check that both `Resource` values contain your **real bucket name**, not `my-s3-files-bucket`:
 
-   ```bash frame="terminal"
-   aws iam get-role-policy \
-     --role-name s3files-filesystem-role \
-     --policy-name S3FilesFileSystemPolicy \
-     --query 'PolicyDocument.Statement[*].Resource' \
-     --output text
-   ```
+    ```bash frame="terminal"
+    aws iam get-role-policy \
+      --role-name s3files-filesystem-role \
+      --policy-name S3FilesFileSystemPolicy \
+      --query 'PolicyDocument.Statement[*].Resource' \
+      --output text
+    ```
 
-   If you see `my-s3-files-bucket` in the output, stop. Re-run step 1 with the correct `BUCKET=` value, re-run step 3 (`put-role-policy`), then re-run this verification before continuing.
+    If you see `my-s3-files-bucket` in the output, stop. Re-run step 1 with the correct `BUCKET=` value, re-run step 3 (`put-role-policy`), then re-run this verification before continuing.
 
-5. **Set the file system role ARN.** <Badge text="Required" variant="tip" size="small" />
+5.  **Set the file system role ARN.** <Badge text="Required" variant="tip" size="small" />
 
-   ```bash frame="terminal"
-   export FS_ROLE_ARN=arn:aws:iam::${ACCOUNT_ID}:role/s3files-filesystem-role
-   echo "FS_ROLE_ARN=$FS_ROLE_ARN"
-   ```
+    ```bash frame="terminal"
+    export FS_ROLE_ARN=arn:aws:iam::${ACCOUNT_ID}:role/s3files-filesystem-role
+    echo "FS_ROLE_ARN=$FS_ROLE_ARN"
+    ```
 
-6. **Create the file system.** <Badge text="Required" variant="tip" size="small" />
+6.  **Create the file system.** <Badge text="Required" variant="tip" size="small" />
 
-   ```bash frame="terminal"
-   aws s3files create-file-system \
-     --region $AWS_REGION \
-     --bucket $BUCKET_ARN \
-     --role-arn $FS_ROLE_ARN
-   ```
+    ```bash frame="terminal"
+    aws s3files create-file-system \
+      --region $AWS_REGION \
+      --bucket $BUCKET_ARN \
+      --role-arn $FS_ROLE_ARN
+    ```
 
-   The response is JSON. Note the `fileSystemId` value — it starts with `fs-`.
+    The response is JSON. Note the `fileSystemId` value — it starts with `fs-`.
 
-   <Aside type="note">
-     **What to expect in the AWS Console while the file system is `Creating`:**
+    <Aside type="note">
+      **What to expect in the AWS Console while the file system is `Creating`:** - **"This file
+      system doesn't have any mount targets"** — expected; mount targets are created in the next
+      setup page. - **"Unknown Error" in the Synchronization configuration panel** — often
+      **transient** while status is still `Creating`. Once the file system is **`available`**, this
+      panel should load. If **Unknown Error persists after `available`**, open the **API response**
+      details in the banner: it is usually an IAM permission issue on the **file system role**
+      (wrong trust `aws:SourceArn`, or EventBridge statements that do not match [AWS
+      prerequisites](https://docs.aws.amazon.com/AmazonS3/latest/userguide/s3-files-prereq-policies.html)
+      — manage actions must target `DO-NOT-DELETE-S3-Files*` with `events:ManagedBy`, not a generic
+      `s3-files-*` pattern). Re-apply steps 2–3, then refresh.
+    </Aside>
 
-     - **"This file system doesn't have any mount targets"** — expected; mount targets are created in the next setup page.
-     - **"Unknown Error" in the Synchronization configuration panel** — often **transient** while status is still `Creating`. Once the file system is **`available`**, this panel should load. If **Unknown Error persists after `available`**, open the **API response** details in the banner: it is usually an IAM permission issue on the **file system role** (wrong trust `aws:SourceArn`, or EventBridge statements that do not match [AWS prerequisites](https://docs.aws.amazon.com/AmazonS3/latest/userguide/s3-files-prereq-policies.html) — manage actions must target `DO-NOT-DELETE-S3-Files*` with `events:ManagedBy`, not a generic `s3-files-*` pattern). Re-apply steps 2–3, then refresh.
-   </Aside>
+        <Aside type="caution">
 
-   <Aside type="caution">
-     **If `create-file-system` returns "Access denied: S3 Files does not have permissions to assume the provided role"** — the trust policy is wrong. Common causes: heredoc written with `<<'EOF'` (variables not expanded), or `AWS_REGION`/`ACCOUNT_ID` were unset in step 2, or **`aws:SourceArn` uses `arn:aws:elasticfilesystem:…` instead of `arn:aws:s3files:…`** (see the caution under step 2). Fix: re-run step 1, regenerate `/tmp/fs-trust-policy.json`, run `aws iam update-assume-role-policy --role-name s3files-filesystem-role --policy-document file:///tmp/fs-trust-policy.json`, then retry `create-file-system`.
+    **If `create-file-system` returns "Access denied: S3 Files does not have permissions to assume the provided role"** — the trust policy is wrong. Common causes: heredoc written with `<<'EOF'` (variables not expanded), or `AWS_REGION`/`ACCOUNT_ID` were unset in step 2, or **`aws:SourceArn` uses `arn:aws:elasticfilesystem:…` instead of `arn:aws:s3files:…`** (see the caution under step 2). Fix: re-run step 1, regenerate `/tmp/fs-trust-policy.json`, run `aws iam update-assume-role-policy --role-name s3files-filesystem-role --policy-document file:///tmp/fs-trust-policy.json`, then retry `create-file-system`.
 
-     **If the file system is stuck in `Creating` with `statusMessage: "Access denied: ... s3:HeadObject"`** — the inline policy resource ARN points to the wrong bucket (the placeholder was not replaced). Fix without deleting the file system: re-run step 1 with the correct `BUCKET=` value, re-run step 3 (`put-role-policy`), then wait ~60 seconds — the file system will automatically retry and transition to `available`.
+    **If the file system is stuck in `Creating` with `statusMessage: "Access denied: ... s3:HeadObject"`** — the inline policy resource ARN points to the wrong bucket (the placeholder was not replaced). Fix without deleting the file system: re-run step 1 with the correct `BUCKET=` value, re-run step 3 (`put-role-policy`), then wait ~60 seconds — the file system will automatically retry and transition to `available`.
 
-     Check status and `statusMessage` **before** you export `FS_ID` in step 7:
-     ```bash frame="terminal"
-     aws s3files list-file-systems \
-       --region $AWS_REGION \
-       --bucket $BUCKET_ARN \
-       --query 'fileSystems[0].{id:fileSystemId,status:status,message:statusMessage}' \
-       --output json
-     ```
-     After step 7 sets `FS_ID`, you can use `aws s3files get-file-system --file-system-id $FS_ID` instead.
-   </Aside>
+    Check status and `statusMessage` **before** you export `FS_ID` in step 7:
 
-7. **Export the file system ID.**
+    ```bash frame="terminal"
+    aws s3files list-file-systems \
+      --region $AWS_REGION \
+      --bucket $BUCKET_ARN \
+      --query 'fileSystems[0].{id:fileSystemId,status:status,message:statusMessage}' \
+      --output json
+    ```
 
-   ```bash frame="terminal"
-   export FS_ID=$(aws s3files list-file-systems \
-     --region $AWS_REGION \
-     --bucket $BUCKET_ARN \
-     --query 'fileSystems[0].fileSystemId' \
-     --output text)
-   echo "File system: $FS_ID"
-   ```
+    After step 7 sets `FS_ID`, you can use `aws s3files get-file-system --file-system-id $FS_ID` instead.
 
-8. **Wait for the file system to become available.**
+        </Aside>
 
-   File system creation typically completes within one to two minutes. Re-run until the output is `available`:
+7.  **Export the file system ID.**
 
-   ```bash frame="terminal"
-   aws s3files get-file-system \
-     --region $AWS_REGION \
-     --file-system-id $FS_ID \
-     --query 'status' \
-     --output text
-   ```
+    ```bash frame="terminal"
+    export FS_ID=$(aws s3files list-file-systems \
+      --region $AWS_REGION \
+      --bucket $BUCKET_ARN \
+      --query 'fileSystems[0].fileSystemId' \
+      --output text)
+    echo "File system: $FS_ID"
+    ```
 
-   Once the output is `available`, the console's Synchronization configuration "Unknown Error" and the "no mount targets" warning both clear — no action required.
+8.  **Wait for the file system to become available.**
+
+    File system creation typically completes within one to two minutes. Re-run until the output is `available`:
+
+    ```bash frame="terminal"
+    aws s3files get-file-system \
+      --region $AWS_REGION \
+      --file-system-id $FS_ID \
+      --query 'status' \
+      --output text
+    ```
+
+    Once the output is `available`, the console's Synchronization configuration "Unknown Error" and the "no mount targets" warning both clear — no action required.
 
 </Steps>
 

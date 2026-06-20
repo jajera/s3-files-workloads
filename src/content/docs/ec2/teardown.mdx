@@ -5,20 +5,20 @@ sidebar:
   label: Teardown
 ---
 
-import { Steps, Aside, Badge } from '@astrojs/starlight/components';
-import Checklist from '@/components/Checklist.astro';
+import { Steps, Aside, Badge } from "@astrojs/starlight/components";
+import Checklist from "@/components/Checklist.astro";
 
 <Checklist
   id="ec2-teardown"
   items={[
-    'Instance unmounted and /etc/fstab cleaned',
-    'EC2 instance terminated',
-    'Compute security group deleted',
-    'Mount targets deleted',
-    'File system deleted',
-    'IAM roles and instance profile deleted',
-    'Mount target security group deleted',
-    'S3 bucket emptied and deleted (optional)',
+    "Instance unmounted and /etc/fstab cleaned",
+    "EC2 instance terminated",
+    "Compute security group deleted",
+    "Mount targets deleted",
+    "File system deleted",
+    "IAM roles and instance profile deleted",
+    "Mount target security group deleted",
+    "S3 bucket emptied and deleted (optional)",
   ]}
 />
 
@@ -106,7 +106,9 @@ This page tears down everything created in the EC2 walkthrough, in dependency or
    ```
 
    <Aside type="note">
-     If the instance is still terminating and holds an ENI attached to the SG, `delete-security-group` will return `DependencyViolation`. Wait for the instance to reach `terminated` state (step 3 wait) before retrying.
+     If the instance is still terminating and holds an ENI attached to the SG,
+     `delete-security-group` will return `DependencyViolation`. Wait for the instance to reach
+     `terminated` state (step 3 wait) before retrying.
    </Aside>
 
 5. **Delete all mount targets.** <Badge text="Required" variant="tip" size="small" />
