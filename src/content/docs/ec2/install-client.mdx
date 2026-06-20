@@ -5,19 +5,19 @@ sidebar:
   label: Launch & Install
 ---
 
-import { Steps, Aside, Badge } from '@astrojs/starlight/components';
-import Checklist from '@/components/Checklist.astro';
+import { Steps, Aside, Badge } from "@astrojs/starlight/components";
+import Checklist from "@/components/Checklist.astro";
 
 <Checklist
   id="ec2-install-client"
   items={[
-    'Base exports confirmed (AWS_REGION, VPC_ID, FS_ID, COMPUTE_SG_ID)',
-    'HTTPS egress added to compute SG (SSM)',
-    'Amazon Linux 2023 AMI ID resolved',
-    'Instance launched with s3files-ec2-instance-profile',
-    'Instance in running state',
-    'SSM agent registered — aws ssm describe-instance-information shows the instance',
-    'SSM session opens successfully',
+    "Base exports confirmed (AWS_REGION, VPC_ID, FS_ID, COMPUTE_SG_ID)",
+    "HTTPS egress added to compute SG (SSM)",
+    "Amazon Linux 2023 AMI ID resolved",
+    "Instance launched with s3files-ec2-instance-profile",
+    "Instance in running state",
+    "SSM agent registered — aws ssm describe-instance-information shows the instance",
+    "SSM session opens successfully",
   ]}
 />
 
@@ -26,7 +26,9 @@ import Checklist from '@/components/Checklist.astro';
 This page launches a **t3.micro Amazon Linux 2023** instance into the same VPC as the S3 Files mount targets, attaches the compute instance profile created in [IAM](/s3-files-workloads/ec2/setup/iam/), and connects using **SSM Session Manager** — no key pair or public IP required.
 
 <Aside type="note">
-  The instance subnet must be in the same Availability Zone as at least one mount target, but it can be a **public or NAT-routed subnet** so SSM can reach the AWS APIs. Mount targets can stay on private subnets.
+  The instance subnet must be in the same Availability Zone as at least one mount target, but it can
+  be a **public or NAT-routed subnet** so SSM can reach the AWS APIs. Mount targets can stay on
+  private subnets.
 </Aside>
 
 <Steps>
@@ -120,7 +122,8 @@ This page launches a **t3.micro Amazon Linux 2023** instance into the same VPC a
    ```
 
    <Aside type="note">
-     `HttpPutResponseHopLimit=2` is required when using IMDSv2 inside a container or with tools that need an extra hop. It is safe to set on bare EC2 instances as well.
+     `HttpPutResponseHopLimit=2` is required when using IMDSv2 inside a container or with tools that
+     need an extra hop. It is safe to set on bare EC2 instances as well.
    </Aside>
 
 6. **Wait for the instance to reach running state.** <Badge text="Required" variant="tip" size="small" />
@@ -149,9 +152,10 @@ This page launches a **t3.micro Amazon Linux 2023** instance into the same VPC a
    ```
 
    <Aside type="note">
-     If the loop runs longer than 3 minutes, confirm that:
-     - The instance subnet has outbound HTTPS (port 443) — check step 2 and the subnet route table.
-     - The instance profile `s3files-ec2-instance-profile` has `AmazonSSMManagedInstanceCore` attached (added in [IAM](/s3-files-workloads/ec2/setup/iam/)).
+     If the loop runs longer than 3 minutes, confirm that: - The instance subnet has outbound HTTPS
+     (port 443) — check step 2 and the subnet route table. - The instance profile
+     `s3files-ec2-instance-profile` has `AmazonSSMManagedInstanceCore` attached (added in
+     [IAM](/s3-files-workloads/ec2/setup/iam/)).
    </Aside>
 
 8. **Open an SSM session.** <Badge text="Required" variant="tip" size="small" />

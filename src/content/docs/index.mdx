@@ -5,9 +5,9 @@ sidebar:
   label: Introduction
 ---
 
-import { Image } from 'astro:assets';
-import { CardGrid, LinkCard, Aside } from '@astrojs/starlight/components';
-import hero from '../../assets/s3-files-landing-hero.png';
+import { Image } from "astro:assets";
+import { CardGrid, LinkCard, Aside } from "@astrojs/starlight/components";
+import hero from "../../assets/s3-files-landing-hero.png";
 
 <Image
   src={hero}
@@ -34,19 +34,19 @@ Review these requirements before starting any walkthrough. They apply to both th
 
 ### S3 bucket
 
-| Requirement | Detail |
-| --- | --- |
-| **Versioning** | Must be enabled — S3 Files uses versioning to synchronise changes between the file system and the bucket. File system creation fails if versioning is off. |
+| Requirement    | Detail                                                                                                                                                                        |
+| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Versioning** | Must be enabled — S3 Files uses versioning to synchronise changes between the file system and the bucket. File system creation fails if versioning is off.                    |
 | **Encryption** | SSE-S3 (`AES256`) or SSE-KMS only. SSE-C (customer-provided keys) and DSSE-KMS are **not supported**. New buckets default to SSE-S3, which works without extra configuration. |
 
 ### IAM — two roles required
 
 S3 Files uses exactly two IAM roles:
 
-| Role | Service principal | Purpose |
-| --- | --- | --- |
-| **File system role** | `elasticfilesystem.amazonaws.com` | S3 Files assumes this role to read/write your bucket and manage EventBridge sync rules. The trust policy `aws:SourceArn` must use `arn:aws:s3files:…` — **not** `arn:aws:elasticfilesystem:…`. |
-| **Compute role** | `ec2.amazonaws.com` / `ecs-tasks.amazonaws.com` / `lambda.amazonaws.com` | Your compute resource assumes this role to mount the file system and read objects from S3. |
+| Role                 | Service principal                                                        | Purpose                                                                                                                                                                                        |
+| -------------------- | ------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **File system role** | `elasticfilesystem.amazonaws.com`                                        | S3 Files assumes this role to read/write your bucket and manage EventBridge sync rules. The trust policy `aws:SourceArn` must use `arn:aws:s3files:…` — **not** `arn:aws:elasticfilesystem:…`. |
+| **Compute role**     | `ec2.amazonaws.com` / `ecs-tasks.amazonaws.com` / `lambda.amazonaws.com` | Your compute resource assumes this role to mount the file system and read objects from S3.                                                                                                     |
 
 ### Network
 
@@ -63,22 +63,23 @@ aws s3files help       # must list s3files subcommands
 
 ### Terraform (for Terraform walkthroughs)
 
-| Requirement | Minimum version |
-| --- | --- |
-| Terraform | 1.5 |
-| AWS provider (`hashicorp/aws`) | 6.40 |
+| Requirement                    | Minimum version |
+| ------------------------------ | --------------- |
+| Terraform                      | 1.5             |
+| AWS provider (`hashicorp/aws`) | 6.40            |
 
 <Aside type="note">
-  The Terraform AWS provider added native S3 Files resources (`aws_s3files_*`) in version **6.40**. Earlier versions do not include these resources.
+  The Terraform AWS provider added native S3 Files resources (`aws_s3files_*`) in version **6.40**.
+  Earlier versions do not include these resources.
 </Aside>
 
 ### Platform constraints
 
-| Platform | Constraint |
-| --- | --- |
-| EC2 | Requires `amazon-efs-utils` v3.0.0+ for the `mount -t s3files` helper |
-| ECS | **Fargate and Managed Instances only** — EC2 launch type is not supported |
-| Lambda | **Access point required** — Lambda cannot mount by file system ID alone |
+| Platform | Constraint                                                                |
+| -------- | ------------------------------------------------------------------------- |
+| EC2      | Requires `amazon-efs-utils` v3.0.0+ for the `mount -t s3files` helper     |
+| ECS      | **Fargate and Managed Instances only** — EC2 launch type is not supported |
+| Lambda   | **Access point required** — Lambda cannot mount by file system ID alone   |
 
 ---
 

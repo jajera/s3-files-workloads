@@ -5,18 +5,18 @@ sidebar:
   label: Attach
 ---
 
-import { Steps, Aside, Badge } from '@astrojs/starlight/components';
-import Checklist from '@/components/Checklist.astro';
+import { Steps, Aside, Badge } from "@astrojs/starlight/components";
+import Checklist from "@/components/Checklist.astro";
 
 <Checklist
   id="lambda-attach"
   items={[
-    'AP_ARN, COMPUTE_SG_ID, and LAMBDA_SUBNET_ID exported',
-    'Lambda role ARN resolved',
-    'AWSLambdaVPCAccessExecutionRole attached to the Lambda role',
-    'Lambda function created with VPC config',
-    'File system config attached (access point ARN, /mnt/s3files)',
-    'Function in Active state',
+    "AP_ARN, COMPUTE_SG_ID, and LAMBDA_SUBNET_ID exported",
+    "Lambda role ARN resolved",
+    "AWSLambdaVPCAccessExecutionRole attached to the Lambda role",
+    "Lambda function created with VPC config",
+    "File system config attached (access point ARN, /mnt/s3files)",
+    "Function in Active state",
   ]}
 />
 
@@ -61,7 +61,9 @@ This page creates a simple Python Lambda function, configures it to run inside t
    ```
 
    <Aside type="note">
-     The Lambda subnet must have a route to the mount targets on **port 2049 TCP**. A private subnet behind a NAT gateway (for HTTPS to Lambda APIs) works well. A subnet with an internet gateway route also works.
+     The Lambda subnet must have a route to the mount targets on **port 2049 TCP**. A private subnet
+     behind a NAT gateway (for HTTPS to Lambda APIs) works well. A subnet with an internet gateway
+     route also works.
    </Aside>
 
 3. **Attach `AWSLambdaVPCAccessExecutionRole` to the Lambda role.** <Badge text="Required" variant="tip" size="small" />

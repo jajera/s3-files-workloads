@@ -7,6 +7,7 @@ Use this skill when the user asks to add a new walkthrough page to the `s3-files
 ### 1. Determine section and slug
 
 Ask (or infer from context):
+
 - Which section does this page belong to? (`setup`, `ec2`, `eks`, `ecs`, `lambda`, `teardown`)
 - What is the page slug (filename without `.mdx`)? e.g. `mount`, `verify`, `iam`
 
@@ -16,7 +17,7 @@ The file path will be: `src/content/docs/<section>/<slug>.mdx`
 
 Use this frontmatter template exactly:
 
-```mdx
+````mdx
 ---
 title: <Page Title>
 description: <One sentence — what does this page achieve?>
@@ -25,17 +26,11 @@ sidebar:
   label: <Short sidebar label>
 ---
 
-import { Steps, Aside, Badge } from '@astrojs/starlight/components';
-import Checklist from '@/components/Checklist.astro';
-import Tooltip from '@/components/Tooltip.astro';
+import { Steps, Aside, Badge } from "@astrojs/starlight/components";
+import Checklist from "@/components/Checklist.astro";
+import Tooltip from "@/components/Tooltip.astro";
 
-<Checklist
-  id="<section>-<slug>"
-  items={[
-    'Item one',
-    'Item two',
-  ]}
-/>
+<Checklist id="<section>-<slug>" items={["Item one", "Item two"]} />
 
 ## Overview
 
@@ -46,11 +41,13 @@ import Tooltip from '@/components/Tooltip.astro';
    ```bash frame="terminal"
    # command here
    ```
+````
 
 </Steps>
 ```
 
 Rules:
+
 - `id` in `<Checklist>` must be unique across the whole site. Pattern: `<section>-<slug>`.
 - All block JSX inside `<Steps>` must be indented 3 spaces; `<TabItem>` contents 6 spaces.
 - Only import what the page actually uses.
@@ -87,7 +84,7 @@ When the page content is complete:
 
 File path: `src/content/docs/ec2/verify.mdx`
 
-```mdx
+````mdx
 ---
 title: Verify EC2 Mount
 description: Confirm the S3 file system is mounted and read/write operations work on EC2.
@@ -96,15 +93,15 @@ sidebar:
   label: Verify
 ---
 
-import { Steps, Aside } from '@astrojs/starlight/components';
-import Checklist from '@/components/Checklist.astro';
+import { Steps, Aside } from "@astrojs/starlight/components";
+import Checklist from "@/components/Checklist.astro";
 
 <Checklist
   id="ec2-verify"
   items={[
-    'Mount confirmed with df and findmnt',
-    'Read test passed',
-    'Write test passed and synced to S3',
+    "Mount confirmed with df and findmnt",
+    "Read test passed",
+    "Write test passed and synced to S3",
   ]}
 />
 
@@ -118,6 +115,7 @@ import Checklist from '@/components/Checklist.astro';
    df -h /mnt/s3files
    findmnt -T /mnt/s3files
    ```
+````
 
 2. **Write a file and verify sync.**
 

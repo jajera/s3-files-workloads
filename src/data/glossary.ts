@@ -1,18 +1,24 @@
 export const glossary: Record<string, string> = {
-  'access-point': 'Access Point — an application-specific entry point into an S3 file system that enforces user identity and permissions. Required when mounting on Lambda.',
-  'aws-cli': 'AWS Command Line Interface — the `aws` program used in these walkthroughs. Requires AWS CLI v2.34.26 or newer (not legacy v1 from pip); older v2 builds omit `aws s3files`. Must be configured with valid credentials before running any commands.',
-  az: 'Availability Zone — an isolated data-centre location within an AWS region. Mount targets are created per AZ for high availability.',
-  csi: 'Container Storage Interface — a standard API for Kubernetes to manage storage volumes. S3 Files uses the Amazon EFS CSI driver on EKS.',
-  efs: 'Elastic File System — AWS-managed NFS storage. S3 Files shares the same mount helper (amazon-efs-utils) and CSI driver as EFS.',
-  fargate: 'AWS Fargate — a serverless compute engine for containers. The only ECS launch type that supports S3 Files volumes (EC2 launch type is not supported).',
-  iam: 'Identity and Access Management — the AWS service that controls permissions for all resources. S3 Files requires two IAM roles: one for the file system and one for the compute resource.',
-  irsa: 'IAM Roles for Service Accounts — lets Kubernetes pods on EKS assume an IAM role without sharing node credentials. Used to grant the EFS CSI driver access to S3 Files.',
-  'mount-target': 'Mount Target — a network endpoint that provides NFS access to an S3 file system within a single Availability Zone. One mount target per AZ is recommended.',
-  nfs: 'Network File System — the protocol used by S3 Files to expose S3 data as a mountable file system. Uses NFS v4.1/4.2 over port 2049 TCP.',
-  s3: 'Amazon S3 — the object storage service that backs S3 Files. Every file read/write is ultimately stored as an S3 object in the linked bucket.',
-  s3files: 'Amazon S3 Files — a service that exposes an S3 bucket as a shared NFS file system. Supports EC2, EKS, ECS (Fargate), and Lambda. Uses the CLI namespace `aws s3files` and mount type `-t s3files`. Read APIs are `list-*` and `get-*` (for example `list-file-systems`, `get-file-system`), not `describe-*`.',
-  sg: 'Security Group — a stateful virtual firewall controlling inbound and outbound traffic. S3 Files requires port 2049 TCP open between the compute security group and the mount target security group.',
-  sse: 'Server-Side Encryption — encryption of data at rest in S3. S3 Files supports SSE-S3 (AWS-managed keys) and SSE-KMS (customer-managed keys). SSE-C is not supported.',
-  versioning: 'S3 Versioning — keeps multiple versions of each object in a bucket. S3 Files requires versioning to be enabled on the linked bucket for synchronisation to work.',
-  vpc: 'Virtual Private Cloud — an isolated private network in AWS. S3 Files mount targets and compute resources must be in the same VPC.',
+  "access-point":
+    "Access Point — an application-specific entry point into an S3 file system that enforces user identity and permissions. Required when mounting on Lambda.",
+  "aws-cli":
+    "AWS Command Line Interface — the `aws` program used in these walkthroughs. Requires AWS CLI v2.34.26 or newer (not legacy v1 from pip); older v2 builds omit `aws s3files`. Must be configured with valid credentials before running any commands.",
+  az: "Availability Zone — an isolated data-centre location within an AWS region. Mount targets are created per AZ for high availability.",
+  csi: "Container Storage Interface — a standard API for Kubernetes to manage storage volumes. S3 Files uses the Amazon EFS CSI driver on EKS.",
+  efs: "Elastic File System — AWS-managed NFS storage. S3 Files shares the same mount helper (amazon-efs-utils) and CSI driver as EFS.",
+  fargate:
+    "AWS Fargate — a serverless compute engine for containers. The only ECS launch type that supports S3 Files volumes (EC2 launch type is not supported).",
+  iam: "Identity and Access Management — the AWS service that controls permissions for all resources. S3 Files requires two IAM roles: one for the file system and one for the compute resource.",
+  irsa: "IAM Roles for Service Accounts — lets Kubernetes pods on EKS assume an IAM role without sharing node credentials. Used to grant the EFS CSI driver access to S3 Files.",
+  "mount-target":
+    "Mount Target — a network endpoint that provides NFS access to an S3 file system within a single Availability Zone. One mount target per AZ is recommended.",
+  nfs: "Network File System — the protocol used by S3 Files to expose S3 data as a mountable file system. Uses NFS v4.1/4.2 over port 2049 TCP.",
+  s3: "Amazon S3 — the object storage service that backs S3 Files. Every file read/write is ultimately stored as an S3 object in the linked bucket.",
+  s3files:
+    "Amazon S3 Files — a service that exposes an S3 bucket as a shared NFS file system. Supports EC2, EKS, ECS (Fargate), and Lambda. Uses the CLI namespace `aws s3files` and mount type `-t s3files`. Read APIs are `list-*` and `get-*` (for example `list-file-systems`, `get-file-system`), not `describe-*`.",
+  sg: "Security Group — a stateful virtual firewall controlling inbound and outbound traffic. S3 Files requires port 2049 TCP open between the compute security group and the mount target security group.",
+  sse: "Server-Side Encryption — encryption of data at rest in S3. S3 Files supports SSE-S3 (AWS-managed keys) and SSE-KMS (customer-managed keys). SSE-C is not supported.",
+  versioning:
+    "S3 Versioning — keeps multiple versions of each object in a bucket. S3 Files requires versioning to be enabled on the linked bucket for synchronisation to work.",
+  vpc: "Virtual Private Cloud — an isolated private network in AWS. S3 Files mount targets and compute resources must be in the same VPC.",
 };

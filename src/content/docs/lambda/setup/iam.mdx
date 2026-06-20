@@ -5,18 +5,18 @@ sidebar:
   label: IAM
 ---
 
-import { Steps, Aside, Badge } from '@astrojs/starlight/components';
-import Checklist from '@/components/Checklist.astro';
-import Tooltip from '@/components/Tooltip.astro';
+import { Steps, Aside, Badge } from "@astrojs/starlight/components";
+import Checklist from "@/components/Checklist.astro";
+import Tooltip from "@/components/Tooltip.astro";
 
 <Checklist
   id="lambda-setup-iam"
   items={[
-    'Base exports confirmed (AWS_REGION, ACCOUNT_ID, BUCKET_ARN)',
-    'Lambda execution role s3files-compute-role-lambda created',
-    'AmazonS3FilesClientFullAccess attached',
-    'AWSLambdaBasicExecutionRole attached',
-    'Inline S3 read policy attached',
+    "Base exports confirmed (AWS_REGION, ACCOUNT_ID, BUCKET_ARN)",
+    "Lambda execution role s3files-compute-role-lambda created",
+    "AmazonS3FilesClientFullAccess attached",
+    "AWSLambdaBasicExecutionRole attached",
+    "Inline S3 read policy attached",
   ]}
 />
 
@@ -24,15 +24,16 @@ import Tooltip from '@/components/Tooltip.astro';
 
 <Tooltip term="s3files" /> requires exactly two <Tooltip term="iam" /> roles:
 
-| Role | Who assumes it | Purpose |
-| ---- | -------------- | ------- |
+| Role                 | Who assumes it                    | Purpose                                                             |
+| -------------------- | --------------------------------- | ------------------------------------------------------------------- |
 | **File system role** | `elasticfilesystem.amazonaws.com` | S3 Files reads/writes the bucket and manages EventBridge sync rules |
-| **Compute role** | Lambda execution role | Lambda mounts the file system and reads objects directly from S3 |
+| **Compute role**     | Lambda execution role             | Lambda mounts the file system and reads objects directly from S3    |
 
 The **file system** role was created in [File System](/s3-files-workloads/lambda/setup/filesystem/). This page creates the **Lambda execution** role.
 
 <Aside type="caution">
-  The file system role principal is `elasticfilesystem.amazonaws.com` — not `s3.amazonaws.com`. This is intentional; S3 Files is built on EFS infrastructure.
+  The file system role principal is `elasticfilesystem.amazonaws.com` — not `s3.amazonaws.com`. This
+  is intentional; S3 Files is built on EFS infrastructure.
 </Aside>
 
 <Steps>

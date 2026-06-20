@@ -5,17 +5,17 @@ sidebar:
   label: Mount
 ---
 
-import { Steps, Aside, Badge } from '@astrojs/starlight/components';
-import Checklist from '@/components/Checklist.astro';
+import { Steps, Aside, Badge } from "@astrojs/starlight/components";
+import Checklist from "@/components/Checklist.astro";
 
 <Checklist
   id="ec2-mount"
   items={[
-    'Connected to the instance via SSM Session Manager',
-    'amazon-efs-utils v3.0.0 or newer installed',
-    'Mount point /mnt/s3files created',
-    'File system mounted with mount -t s3files',
-    '/etc/fstab entry added for persistence across reboots',
+    "Connected to the instance via SSM Session Manager",
+    "amazon-efs-utils v3.0.0 or newer installed",
+    "Mount point /mnt/s3files created",
+    "File system mounted with mount -t s3files",
+    "/etc/fstab entry added for persistence across reboots",
   ]}
 />
 
@@ -46,7 +46,9 @@ aws ssm start-session \
    ```
 
    <Aside type="caution">
-     The `mount -t s3files` helper is only available in `amazon-efs-utils` **v3.0.0+**. Earlier versions ship with EFS-only support. If the `dnf` version is too old, update the package index first: `sudo dnf update -y amazon-efs-utils`.
+     The `mount -t s3files` helper is only available in `amazon-efs-utils` **v3.0.0+**. Earlier
+     versions ship with EFS-only support. If the `dnf` version is too old, update the package index
+     first: `sudo dnf update -y amazon-efs-utils`.
    </Aside>
 
 2. **Set the file system ID in the session.** <Badge text="Required" variant="tip" size="small" />
@@ -59,14 +61,10 @@ aws ssm start-session \
    ```
 
    <Aside type="tip">
-     Your `FS_ID` was printed during [File System](/s3-files-workloads/ec2/setup/filesystem/) setup. If you have lost it, run the following **on your workstation** (not in the SSM session):
-     ```bash frame="terminal"
-     aws s3files list-file-systems \
-       --bucket "arn:aws:s3:::${BUCKET}" \
-       --region "$AWS_REGION" \
-       --query 'fileSystems[0].fileSystemId' \
-       --output text
-     ```
+     Your `FS_ID` was printed during [File System](/s3-files-workloads/ec2/setup/filesystem/) setup.
+     If you have lost it, run the following **on your workstation** (not in the SSM session):
+     ```bash frame="terminal" aws s3files list-file-systems \ --bucket "arn:aws:s3:::${BUCKET}" \
+     --region "$AWS_REGION" \ --query 'fileSystems[0].fileSystemId' \ --output text ```
    </Aside>
 
 3. **Create the mount point.** <Badge text="Required" variant="tip" size="small" />
@@ -82,7 +80,10 @@ aws ssm start-session \
    ```
 
    <Aside type="note">
-     The mount may take 10–30 seconds while the NFS connection is established with the mount target. If it hangs for more than 60 seconds, check that port 2049 TCP is open between the compute and mount target security groups (see [Security Groups](/s3-files-workloads/ec2/setup/security-groups/)).
+     The mount may take 10–30 seconds while the NFS connection is established with the mount target.
+     If it hangs for more than 60 seconds, check that port 2049 TCP is open between the compute and
+     mount target security groups (see [Security
+     Groups](/s3-files-workloads/ec2/setup/security-groups/)).
    </Aside>
 
    Allow the `ssm-user` to read the mount root without sudo:

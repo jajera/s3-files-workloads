@@ -5,17 +5,17 @@ sidebar:
   label: Mount Targets
 ---
 
-import { Steps, Aside, Badge } from '@astrojs/starlight/components';
-import Checklist from '@/components/Checklist.astro';
-import Tooltip from '@/components/Tooltip.astro';
+import { Steps, Aside, Badge } from "@astrojs/starlight/components";
+import Checklist from "@/components/Checklist.astro";
+import Tooltip from "@/components/Tooltip.astro";
 
 <Checklist
   id="lambda-setup-mount-targets"
   items={[
-    'Subnet IDs identified per AZ',
-    'Mount target security group created',
-    'Mount target created in each AZ',
-    'All mount targets in available state',
+    "Subnet IDs identified per AZ",
+    "Mount target security group created",
+    "Mount target created in each AZ",
+    "All mount targets in available state",
   ]}
 />
 
@@ -24,7 +24,9 @@ import Tooltip from '@/components/Tooltip.astro';
 A <Tooltip term="mount-target" /> gives compute resources a network path to the file system within a single <Tooltip term="az" />. Create one per AZ where your Lambda functions run — you can have at most one per AZ.
 
 <Aside type="note">
-  Lambda functions must be configured in the **same VPC** as the mount targets. The Lambda security group (created in [Security Groups](/s3-files-workloads/lambda/setup/security-groups/)) must have outbound NFS (port 2049) to the mount target security group.
+  Lambda functions must be configured in the **same VPC** as the mount targets. The Lambda security
+  group (created in [Security Groups](/s3-files-workloads/lambda/setup/security-groups/)) must have
+  outbound NFS (port 2049) to the mount target security group.
 </Aside>
 
 <Steps>
@@ -76,7 +78,9 @@ A <Tooltip term="mount-target" /> gives compute resources a network path to the 
    ```
 
    <Aside type="note">
-     The inbound NFS rule (port 2049) is added in the [Security Groups](/s3-files-workloads/lambda/setup/security-groups/) step after you know the compute security group ID.
+     The inbound NFS rule (port 2049) is added in the [Security
+     Groups](/s3-files-workloads/lambda/setup/security-groups/) step after you know the compute
+     security group ID.
    </Aside>
 
 4. **Create a mount target in each AZ.** <Badge text="Required" variant="tip" size="small" />
@@ -98,7 +102,9 @@ A <Tooltip term="mount-target" /> gives compute resources a network path to the 
    Add another `export SUBNET_ID_AZC=subnet-…` for each extra AZ — do not run `create-mount-target` with placeholder subnet IDs.
 
    <Aside type="note">
-     Bash treats **`SUBNET_ID_AZA`** and **`SUBNET_ID_AZa`** as different variables. Use **all-uppercase** `AZA` / `AZB` / `AZC` in both `export` and `$SUBNET_ID_…` references, or `--subnet-id` can end up empty and the CLI returns `expected one argument`.
+     Bash treats **`SUBNET_ID_AZA`** and **`SUBNET_ID_AZa`** as different variables. Use
+     **all-uppercase** `AZA` / `AZB` / `AZC` in both `export` and `$SUBNET_ID_…` references, or
+     `--subnet-id` can end up empty and the CLI returns `expected one argument`.
    </Aside>
 
    Create one mount target per export (at most one mount target per AZ):
