@@ -33,7 +33,7 @@ npm install
 npm run dev
 ```
 
-Open the URL the dev server prints (with `base: '/s3-files-workloads'`, typically `http://localhost:4321/s3-files-workloads/`).
+Open the URL the dev server prints (with `base: '/s3-files-workloads'`, typically `http://localhost:4321/`).
 
 ```bash
 npm run build   # production build (draft pages excluded)

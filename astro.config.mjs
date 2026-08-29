@@ -4,8 +4,8 @@ import starlightThemeVintage from "starlight-theme-vintage";
 import Icons from "unplugin-icons/vite";
 
 export default defineConfig({
-  site: "https://jajera.github.io",
-  base: "/s3-files-workloads",
+  site: "https://s3-files-workloads.johna.kiwi",
+  base: "/",
   vite: {
     plugins: [Icons({ compiler: "astro" })],
   },
