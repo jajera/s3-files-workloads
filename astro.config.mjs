@@ -11,6 +11,9 @@ export default defineConfig({
   },
   integrations: [
     starlight({
+      components: {
+        Head: "./src/components/Head.astro",
+      },
       title: "S3 Files Workloads",
       favicon: "/favicon.svg",
       description: "CLI and Terraform walkthroughs for Amazon S3 Files on EC2, ECS, and Lambda.",
