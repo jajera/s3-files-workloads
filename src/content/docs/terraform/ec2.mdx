@@ -169,4 +169,24 @@ Access to the instance is through **SSM Session Manager** — no SSH key pair or
      need to preserve the bucket.
    </Aside>
 
+   <Aside type="note">
+     If destroy fails deleting the file system with `ConflictException` / *data pending export
+     to S3*, the AWS API supports `forceDelete=true`, but the Terraform
+     `aws_s3files_file_system` resource does **not** expose that yet (tracked in
+     [hashicorp/terraform-provider-aws#47588](https://github.com/hashicorp/terraform-provider-aws/issues/47588)).
+     For a throwaway demo, force-delete via the CLI, then re-run destroy:
+
+     ```bash frame="terminal"
+     aws s3files delete-file-system \
+       --file-system-id "$(terraform output -raw file_system_id)" \
+       --force-delete \
+       --region ap-southeast-6
+
+     terraform destroy
+     ```
+
+     If Terraform still thinks the file system exists after the CLI delete:
+     `terraform state rm 'module.s3_files.module.filesystem.aws_s3files_file_system.this'`.
+   </Aside>
+
 </Steps>

@@ -1,0 +1,269 @@
+---
+title: ECS on EC2 — Terraform Example
+description: Provision a new ECS cluster, one ECS-optimized container instance, and an EC2 launch type task with a native s3files_volume_configuration using terraform-aws-s3-files.
+sidebar:
+  label: ECS on EC2
+---
+
+import { Steps, Aside, FileTree } from "@astrojs/starlight/components";
+import Checklist from "@/components/Checklist.astro";
+
+<Checklist
+  id="terraform-ecs-ec2"
+  items={[
+    "Prerequisites confirmed (Terraform >= 1.5, AWS provider >= 6.41, AWS credentials)",
+    "terraform.tfvars created with vpc_id and subnet_ids",
+    "terraform apply completed successfully",
+    "ECS service reached steady state with a healthy task",
+    "CloudWatch logs confirm file system mount and write",
+  ]}
+/>
+
+## What this example does
+
+This example provisions:
+
+- An S3 bucket (versioning + SSE-S3 enabled)
+- An S3 Files file system and mount targets in each provided subnet
+- IAM roles (file system role, ECS **task** role, and a separate ECS **instance** role/profile)
+- Security groups (compute → mount target on NFS port 2049; DNS and HTTPS egress for the agent and task)
+- A **new** ECS cluster
+- One ECS-optimized Amazon Linux 2023 container instance (recommended AMI via SSM)
+- A native `aws_ecs_task_definition` with `s3files_volume_configuration`
+- An ECS service with **`launch_type = EC2`** running one demo task
+
+This is the EC2-launch counterpart to [ECS Fargate](/s3-files-workloads/terraform/ecs/).
+
+<Aside type="note">
+  S3 Files on the ECS EC2 launch type requires ECS agent **>= 1.104** so the instance
+  advertises `ecs.capability.storage.s3-files`. The example uses the current recommended
+  ECS-optimized AMI, which includes a new enough agent.
+</Aside>
+
+<Steps>
+
+1. **Confirm prerequisites.**
+
+   | Requirement  | Minimum version                                              |
+   | ------------ | ------------------------------------------------------------ |
+   | Terraform    | 1.5                                                          |
+   | AWS provider | 6.41 (`s3files_volume_configuration` on task definitions)    |
+   | AWS CLI      | 2.34.26 (for log tail / optional verification)               |
+
+   You need a VPC with private subnets that can reach AWS APIs (NAT gateway or VPC endpoints).
+
+2. **Clone the example.**
+
+   ```bash frame="terminal"
+   git clone https://github.com/jajera/terraform-aws-s3-files.git
+   cd terraform-aws-s3-files/examples/ecs-ec2
+   ```
+
+   <FileTree>
+     - examples/ecs-ec2/ - main.tf - terraform.tfvars.example - terraform.tfvars _(you create this)_
+   </FileTree>
+
+3. **Create `terraform.tfvars`.**
+
+   ```bash frame="terminal"
+   cp terraform.tfvars.example terraform.tfvars
+   ```
+
+   Edit `terraform.tfvars`:
+
+   ```hcl
+   vpc_id     = "vpc-0123456789abcdef0"
+   subnet_ids = ["subnet-aaaaaaaaaaaaaaaaa", "subnet-bbbbbbbbbbbbbbbbb"]
+
+   # Optional overrides (defaults shown):
+   # aws_region         = "ap-southeast-6"
+   # instance_subnet_id = null   # defaults to first subnet_ids entry
+   # instance_type      = "t3.small"
+   # container_image    = "public.ecr.aws/amazonlinux/amazonlinux:2023"
+   # log_retention_days = 7
+   # bucket_name        = null   # auto-generated: s3files-demo-<random>
+   # bucket_force_destroy = true
+   ```
+
+   <div class="wide-table-wrap">
+
+   | Variable               | Default                                       | Required | Description                                         |
+   | ---------------------- | --------------------------------------------- | -------- | --------------------------------------------------- |
+   | `vpc_id`               | —                                             | yes      | VPC for mount targets, instance, and task ENIs      |
+   | `subnet_ids`           | —                                             | yes      | Subnets for mount targets and task ENIs             |
+   | `instance_subnet_id`   | first `subnet_ids` entry                      | no       | Subnet for the container instance                   |
+   | `aws_region`           | `ap-southeast-6`                              | no       | AWS region                                          |
+   | `instance_type`        | `t3.small`                                    | no       | EC2 instance type for the container instance        |
+   | `container_image`      | `public.ecr.aws/amazonlinux/amazonlinux:2023` | no       | Demo task image                                     |
+   | `log_retention_days`   | `7`                                           | no       | CloudWatch log retention                            |
+   | `bucket_name`          | auto-generated                                | no       | Leave `null` for `s3files-demo-<random>`            |
+   | `bucket_force_destroy` | `true`                                        | no       | Allow destroy even when the bucket contains objects |
+
+   </div>
+
+4. **Initialise and apply.**
+
+   ```bash frame="terminal"
+   terraform init
+   terraform plan
+   terraform apply
+   ```
+
+   When apply finishes:
+
+   ```bash frame="terminal"
+   terraform output
+   ```
+
+   <div class="wide-table-wrap">
+
+   | Output                   | Description                     |
+   | ------------------------ | ------------------------------- |
+   | `ecs_cluster_name`       | Cluster created by this example |
+   | `ecs_instance_id`        | Container instance ID           |
+   | `ecs_service_name`       | ECS service name                |
+   | `task_definition_family` | Task definition family          |
+   | `log_group`              | CloudWatch log group            |
+   | `file_system_id`         | S3 Files file system ID         |
+   | `bucket_name`            | Backing S3 bucket name          |
+
+   </div>
+
+5. **Confirm the service is healthy.**
+
+   ```bash frame="terminal"
+   aws ecs describe-services \
+     --cluster "$(terraform output -raw ecs_cluster_name)" \
+     --services "$(terraform output -raw ecs_service_name)" \
+     --region ap-southeast-6 \
+     --query 'services[0].{status:status,running:runningCount,desired:desiredCount}'
+   ```
+
+   Expected output:
+
+   ```json
+   {
+       "status": "ACTIVE",
+       "running": 1,
+       "desired": 1
+   }
+   ```
+
+   Wait until `runningCount` equals `desiredCount` (1). First boot can take a few minutes while the instance registers with ECS and the mount targets become available. If the service fails on first apply because no container instance is registered yet, wait for the instance to join the cluster and run `terraform apply` again.
+
+   <Aside type="note">
+     If the task stops with a `STOPPED` reason mentioning the file system, confirm that the
+     mount targets are `available`:
+
+     ```bash frame="terminal"
+     aws s3files list-mount-targets \
+       --file-system-id "$(terraform output -raw file_system_id)" \
+       --region ap-southeast-6
+     ```
+
+     Expected output (one entry per subnet; all should show `"status": "available"`):
+
+     ```json
+     {
+         "mountTargets": [
+             {
+                 "fileSystemId": "fs-0123456789abcdef0",
+                 "status": "available",
+                 "mountTargetId": "fsmt-0123456789abcdef0",
+                 "subnetId": "subnet-aaaaaaaaaaaaaaaaa",
+                 "vpcId": "vpc-0123456789abcdef0"
+             }
+         ]
+     }
+     ```
+   </Aside>
+
+   Optional: confirm the instance advertises `ecs.capability.storage.s3-files` via
+   `aws ecs describe-container-instances` on the cluster from `ecs_cluster_name`.
+
+6. **Verify via CloudWatch Logs.**
+
+   ```bash frame="terminal"
+   aws logs tail \
+     "$(terraform output -raw log_group)" \
+     --follow \
+     --region ap-southeast-6
+   ```
+
+   Expected output includes:
+
+   ```text
+   ====S3Files-df====
+   Filesystem      Size  Used Avail Use% Mounted on
+   127.0.0.1:/     8.0E     0  8.0E   0% /mnt/s3files
+   ====listing====
+   total 12
+   drwxr-xr-x. 3 root root 10240 ... .
+   drwxr-xr-x. 1 root root    21 ... ..
+   drwx------. 2 root root 10240 ... .s3files-lost+found-fs-...
+   -rw-r--r--. 1 root root    41 ... ecs-s3files-demo.txt
+   ====read-back====
+   written-at-2026-09-19T19:00:07Z-ec2-demo
+   ====done====
+   ```
+
+   Press `Ctrl+C` to stop tailing.
+
+7. **Tear down.**
+
+   ```bash frame="terminal"
+   terraform destroy
+   ```
+
+   <Aside type="caution">
+     `terraform destroy` does **not** deregister ECS task definition revisions (AWS leaves them
+     `INACTIVE`). The cluster, instance, file system, and bucket are destroyed.
+   </Aside>
+
+   <Aside type="note">
+     If destroy times out waiting for the ECS service to become `INACTIVE` while it stays in
+     `DRAINING` (even with `desiredCount` / `runningCount` already `0`), force-delete the service,
+     deregister the container instance, then re-run destroy:
+
+     ```bash frame="terminal"
+     CLUSTER="$(terraform output -raw ecs_cluster_name)"
+     SERVICE="$(terraform output -raw ecs_service_name)"
+
+     aws ecs delete-service --cluster "$CLUSTER" --service "$SERVICE" --force --region ap-southeast-6
+
+     CI=$(aws ecs list-container-instances --cluster "$CLUSTER" --region ap-southeast-6 \
+       --query 'containerInstanceArns[0]' --output text)
+     if [ -n "$CI" ] && [ "$CI" != "None" ]; then
+       aws ecs deregister-container-instance --cluster "$CLUSTER" --container-instance "$CI" \
+         --force --region ap-southeast-6
+     fi
+
+     # Wait until the service reports INACTIVE, then:
+     terraform destroy
+     ```
+
+     If Terraform still cannot refresh the service after a long drain, remove it from state and
+     destroy the rest: `terraform state rm aws_ecs_service.this && terraform destroy`.
+   </Aside>
+
+   <Aside type="note">
+     If destroy fails deleting the file system with `ConflictException` / *data pending export
+     to S3*, the AWS API supports `forceDelete=true`, but the Terraform
+     `aws_s3files_file_system` resource does **not** expose that yet (tracked in
+     [hashicorp/terraform-provider-aws#47588](https://github.com/hashicorp/terraform-provider-aws/issues/47588)).
+     For a throwaway demo, force-delete via the CLI, then re-run destroy:
+
+     ```bash frame="terminal"
+     aws s3files delete-file-system \
+       --file-system-id "$(terraform output -raw file_system_id)" \
+       --force-delete \
+       --region ap-southeast-6
+
+     terraform destroy
+     ```
+
+     If Terraform still thinks the file system exists after the CLI delete:
+     `terraform state rm 'module.s3_files.module.filesystem.aws_s3files_file_system.this'`.
+   </Aside>
+
+</Steps>

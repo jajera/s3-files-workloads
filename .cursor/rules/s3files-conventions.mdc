@@ -86,14 +86,16 @@ sudo yum install -y amazon-efs-utils
 curl https://amazon-efs-utils.aws.com/efs-utils-installer.sh | sudo sh -s -- --install
 ```
 
-## ECS: Fargate and Managed Instances only
+## ECS: Fargate, Managed Instances, and EC2
 
-**S3 Files volumes are NOT supported on the ECS EC2 launch type.** If a task definition with an S3 Files volume is run on EC2 launch type, the task will fail. Always include this callout at the top of ECS pages:
+S3 Files volumes work on **Fargate**, **ECS Managed Instances**, and the **EC2 launch type**.
+
+For EC2 launch type, container instances need ECS agent **>= 1.104** so they advertise `ecs.capability.storage.s3-files`. Document this on ECS-on-EC2 pages; point Fargate pages at [ECS on EC2](/s3-files-workloads/terraform/ecs-ec2/) when mentioning the other launch type.
 
 ```mdx
-<Aside type="caution">
-  S3 Files volumes work on **Fargate** and **ECS Managed Instances** only.
-  The EC2 launch type is not supported — tasks will fail if configured with an S3 Files volume and run on EC2.
+<Aside type="note">
+  S3 Files on the ECS EC2 launch type requires agent **>= 1.104**
+  (`ecs.capability.storage.s3-files`). Use a current ECS-optimized AMI.
 </Aside>
 ```
 

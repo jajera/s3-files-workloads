@@ -2,7 +2,7 @@
 
 [![Deploy](https://github.com/jajera/s3-files-workloads/actions/workflows/deploy.yml/badge.svg?branch=main)](https://github.com/jajera/s3-files-workloads/actions/workflows/deploy.yml)
 
-Documentation for [Amazon S3 Files](https://docs.aws.amazon.com/AmazonS3/latest/userguide/s3-files.html) — **CLI walkthroughs** (EC2 and Lambda) and **Terraform examples** (EC2, ECS Fargate, Lambda), copy-paste first.
+Documentation for [Amazon S3 Files](https://docs.aws.amazon.com/AmazonS3/latest/userguide/s3-files.html) — **CLI walkthroughs** (EC2 and Lambda) and **Terraform examples** (EC2, ECS Fargate, ECS on EC2, Lambda), copy-paste first.
 
 ## What this is
 
@@ -13,7 +13,7 @@ An [Astro Starlight](https://starlight.astro.build/) site with per-platform guid
 | **Introduction** | Prerequisites (versioning, SSE, IAM, NFS, CLI and Terraform versions) |
 | **CLI → EC2**    | Setup → launch & install → mount → verify → teardown                  |
 | **CLI → Lambda** | Setup → access point → attach → verify → teardown                     |
-| **Terraform**    | EC2, ECS Fargate, Lambda examples (`terraform apply`)                 |
+| **Terraform**    | EC2, ECS Fargate, ECS on EC2, Lambda examples (`terraform apply`)     |
 
 ## Key facts
 
@@ -21,7 +21,7 @@ An [Astro Starlight](https://starlight.astro.build/) site with per-platform guid
 - Mount type: `-t s3files`
 - **Two IAM roles**: file system role (`elasticfilesystem.amazonaws.com`) + compute role
 - Bucket **versioning** required; **SSE-S3 or SSE-KMS** only (not SSE-C)
-- ECS: **Fargate or Managed Instances only** (EC2 launch type not supported)
+- ECS: **Fargate, Managed Instances, and EC2 launch type** (EC2 needs agent >= 1.104)
 - Lambda: **access point required**
 
 ## Quick start
@@ -54,7 +54,7 @@ src/content/docs/
   index.mdx              # Introduction
   ec2/                   # overview, setup/*, install-client, mount, verify, teardown
   lambda/                # overview, setup/*, access-point, attach, verify, teardown
-  terraform/             # overview + ec2, ecs, lambda example pages
+  terraform/             # overview + ec2, ecs, ecs-ec2, lambda example pages
 src/components/          # Checklist, Tooltip, etc.
 src/data/glossary.ts     # tooltip terms
 src/styles/              # theme overrides (e.g. content width, tables)

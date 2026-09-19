@@ -4,12 +4,12 @@ Astro Starlight documentation site for **Amazon S3 Files**, organized as CLI-fir
 
 ## What this repo is
 
-`s3-files-workloads` contains hands-on, copy-paste CLI walkthroughs for [Amazon S3 Files](https://docs.aws.amazon.com/AmazonS3/latest/userguide/s3-files.html) — the AWS service that mounts an S3 bucket as an NFS file system on EC2, EKS, ECS (Fargate), and Lambda.
+`s3-files-workloads` contains hands-on, copy-paste CLI and Terraform walkthroughs for [Amazon S3 Files](https://docs.aws.amazon.com/AmazonS3/latest/userguide/s3-files.html) — the AWS service that mounts an S3 bucket as an NFS file system on EC2, ECS (Fargate and EC2 launch types), and Lambda.
 
 Each section walks through:
 
-1. Shared setup — [Setup prerequisites](/s3-files-workloads/setup/#prerequisites) (AWS CLI + **file system IAM role** per [AWS](https://docs.aws.amazon.com/AmazonS3/latest/userguide/s3-files-prereq-policies.html#s3-files-prereq-iam-creation-role)), then bucket, file system, mount targets, **compute** IAM, security groups
-2. Platform-specific mount and verify steps
+1. Prerequisites and platform-specific setup (bucket, file system, mount targets, IAM, security groups)
+2. Mount / attach / verify steps (CLI) or `terraform apply` + verify (Terraform)
 
 ## Key S3 Files facts (agents must know these)
 
@@ -54,7 +54,7 @@ sudo mount -t s3files $FS_ID:/ /mnt/s3files
 | -------- | ---------------------------------------------------------------------- |
 | EC2      | Requires `amazon-efs-utils` v3.0.0+                                    |
 | EKS      | Uses Amazon EFS CSI driver (`aws-efs-csi-driver`)                      |
-| ECS      | **Fargate and Managed Instances only — EC2 launch type not supported** |
+| ECS      | Fargate, Managed Instances, and **EC2 launch type** (agent >= 1.104) |
 | Lambda   | **Access point required** — cannot mount by file system ID alone       |
 
 ### Security group port
@@ -66,13 +66,12 @@ NFS port **2049 TCP** between compute SG and mount target SG.
 ```plaintext
 src/content/docs/
   index.mdx         # splash page
-  setup/            # shared: bucket, filesystem, mount-targets, iam, security-groups
-  ec2/              # install-client (launch EC2 + client), mount, verify
-  eks/              # efs-csi-driver, static-provisioning, verify
-  ecs/              # task-definition, run-task
-  lambda/           # access-point, attach, verify
-  teardown/         # cleanup everything
+  ec2/              # CLI: setup, install-client, mount, verify, teardown
+  lambda/           # CLI: setup, access-point, attach, verify, teardown
+  terraform/        # overview + ec2, ecs, ecs-ec2, lambda example pages
 ```
+
+Companion module: [`terraform-aws-s3-files`](https://github.com/jajera/terraform-aws-s3-files).
 
 ## Tech stack
 
@@ -85,7 +84,7 @@ src/content/docs/
 
 - `site: 'https://jajera.github.io'`
 - `base: '/s3-files-workloads'`
-- All internal links must include the base path, e.g. `/s3-files-workloads/setup/`
+- All internal links must include the base path, e.g. `/s3-files-workloads/terraform/ecs/`
 - **Link previews (Slack, LinkedIn, etc.):** `og:image` / `twitter:image` are set via Starlight `head` in `astro.config.mjs`. See `.cursor/rules/starlight-link-preview.mdc` for the checklist and a template you can reuse in sibling walkthrough repos.
 
 ## Default AWS region

@@ -13,6 +13,8 @@ export default defineConfig({
     starlight({
       components: {
         Head: "./src/components/Head.astro",
+        Sidebar: "./src/components/Sidebar.astro",
+        MobileTableOfContents: "./src/components/MobileTableOfContents.astro",
       },
       title: "S3 Files Workloads",
       favicon: "/favicon.svg",
@@ -143,6 +145,7 @@ export default defineConfig({
             { slug: "terraform" },
             { slug: "terraform/ec2" },
             { slug: "terraform/ecs" },
+            { slug: "terraform/ecs-ec2" },
             { slug: "terraform/lambda" },
           ],
         },
