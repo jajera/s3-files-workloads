@@ -75,11 +75,11 @@ aws s3files help       # must list s3files subcommands
 
 ### Platform constraints
 
-| Platform | Constraint                                                                |
-| -------- | ------------------------------------------------------------------------- |
-| EC2      | Requires `amazon-efs-utils` v3.0.0+ for the `mount -t s3files` helper     |
-| ECS      | Fargate, Managed Instances, and **EC2 launch type** (ECS agent >= 1.104 / `ecs.capability.storage.s3-files`) |
-| Lambda   | **Access point required** — Lambda cannot mount by file system ID alone   |
+| Platform | Constraint                                                              |
+| -------- | ----------------------------------------------------------------------- |
+| EC2      | Requires `amazon-efs-utils` v3.0.0+ for the `mount -t s3files` helper   |
+| ECS      | Fargate, Managed Instances, and **EC2 launch type** (agent >= 1.104)    |
+| Lambda   | **Access point required** — Lambda cannot mount by file system ID alone |
 
 ---
 

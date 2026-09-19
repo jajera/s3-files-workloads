@@ -50,12 +50,12 @@ sudo mount -t s3files $FS_ID:/ /mnt/s3files
 
 ### Per-platform constraints
 
-| Platform | Constraint                                                             |
-| -------- | ---------------------------------------------------------------------- |
-| EC2      | Requires `amazon-efs-utils` v3.0.0+                                    |
-| EKS      | Uses Amazon EFS CSI driver (`aws-efs-csi-driver`)                      |
+| Platform | Constraint                                                           |
+| -------- | -------------------------------------------------------------------- |
+| EC2      | Requires `amazon-efs-utils` v3.0.0+                                  |
+| EKS      | Uses Amazon EFS CSI driver (`aws-efs-csi-driver`)                    |
 | ECS      | Fargate, Managed Instances, and **EC2 launch type** (agent >= 1.104) |
-| Lambda   | **Access point required** — cannot mount by file system ID alone       |
+| Lambda   | **Access point required** — cannot mount by file system ID alone     |
 
 ### Security group port
 
