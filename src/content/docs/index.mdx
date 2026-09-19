@@ -19,12 +19,12 @@ import hero from "../../assets/s3-files-landing-hero.png";
   style="width: 100%; max-width: 72rem; height: auto; border-radius: 0.5rem; margin-block: 0 1.25rem; border: 1px solid var(--sl-color-hairline-light);"
 />
 
-**Amazon S3 Files** mounts an S3 bucket as an NFS file system inside EC2, ECS Fargate, and Lambda — giving your applications a familiar POSIX file-system interface backed by durable object storage.
+**Amazon S3 Files** mounts an S3 bucket as an NFS file system inside EC2, ECS (Fargate and EC2 launch types), and Lambda — giving your applications a familiar POSIX file-system interface backed by durable object storage.
 
 This site contains two types of walkthroughs:
 
 - **CLI** — step-by-step AWS CLI commands for EC2 and Lambda. Each section is self-contained and includes its own setup and teardown.
-- **Terraform** — `terraform apply` examples for EC2, ECS Fargate, and Lambda using the [terraform-aws-s3-files](https://github.com/jajera/terraform-aws-s3-files) modules.
+- **Terraform** — `terraform apply` examples for EC2, ECS Fargate, ECS on EC2, and Lambda using the [terraform-aws-s3-files](https://github.com/jajera/terraform-aws-s3-files) modules.
 
 ---
 
@@ -70,7 +70,7 @@ aws s3files help       # must list s3files subcommands
 
 <Aside type="note">
   The Terraform AWS provider added native S3 Files resources (`aws_s3files_*`) in version **6.40**.
-  Earlier versions do not include these resources.
+  ECS task definitions that use `volume.s3files_volume_configuration` need provider **>= 6.41**.
 </Aside>
 
 ### Platform constraints
@@ -78,7 +78,7 @@ aws s3files help       # must list s3files subcommands
 | Platform | Constraint                                                                |
 | -------- | ------------------------------------------------------------------------- |
 | EC2      | Requires `amazon-efs-utils` v3.0.0+ for the `mount -t s3files` helper     |
-| ECS      | **Fargate and Managed Instances only** — EC2 launch type is not supported |
+| ECS      | Fargate, Managed Instances, and **EC2 launch type** (ECS agent >= 1.104 / `ecs.capability.storage.s3-files`) |
 | Lambda   | **Access point required** — Lambda cannot mount by file system ID alone   |
 
 ---
@@ -99,6 +99,6 @@ aws s3files help       # must list s3files subcommands
   <LinkCard
     title="Terraform"
     href="/s3-files-workloads/terraform/"
-    description="Provision all S3 Files infrastructure and your compute resource with a single terraform apply. Examples for EC2, ECS Fargate, and Lambda."
+    description="Provision all S3 Files infrastructure and your compute resource with a single terraform apply. Examples for EC2, ECS Fargate, ECS on EC2, and Lambda."
   />
 </CardGrid>

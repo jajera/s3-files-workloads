@@ -11,6 +11,22 @@ alwaysApply: false
 
 Applies to **all** Markdown tables in this project, in any file (docs, rules, README, etc.).
 
+## Markdown tables inside Steps
+
+Wide 3–4 column tables (Terraform variables, etc.) **must** be wrapped so narrow viewports scroll horizontally instead of crushing columns (letters stacking vertically):
+
+```mdx
+<div class="wide-table-wrap">
+
+| Variable | Default | Required | Description |
+| --- | --- | --- | ----- |
+| `vpc_id` | — | yes | VPC for mount targets |
+
+</div>
+```
+
+Styles live in `src/styles/splash-overrides.css` (`.wide-table-wrap`). Keep blank lines inside the div so Markdown still parses the table.
+
 ## Rule
 
 Table separator rows **must** have a space between each pipe (`|`) and the dashes. No exceptions.

@@ -102,7 +102,7 @@
   color: var(--sl-color-gray-2);
 }
 
-/* Wide tables (e.g. Terraform variables): scroll horizontally instead of crushing columns inside Steps/lists */
+/* Wide tables: prefer .wide-table-wrap (Terraform variable tables). Scroll instead of crushing columns. */
 .sl-markdown-content .wide-table-wrap {
   display: block;
   width: 100%;
@@ -115,6 +115,7 @@
 
 .sl-markdown-content .wide-table-wrap table {
   width: max(100%, 52rem);
+  min-width: 52rem;
   border-collapse: collapse;
   table-layout: fixed;
 }
@@ -126,6 +127,7 @@
   text-align: start;
   word-break: normal;
   overflow-wrap: break-word;
+  hyphens: none;
 }
 
 .sl-markdown-content .wide-table-wrap th:nth-child(1),
@@ -147,6 +149,48 @@
 .sl-markdown-content .wide-table-wrap th:nth-child(4),
 .sl-markdown-content .wide-table-wrap td:nth-child(4) {
   width: 48%;
+}
+
+/*
+ * Fallback for plain markdown tables (not in .wide-table-wrap): horizontal scroll
+ * so narrow viewports do not stack letters vertically in tight columns.
+ */
+.sl-markdown-content > table,
+.sl-markdown-content li > table,
+.sl-markdown-content p + table,
+.sl-markdown-content blockquote > table {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-collapse: collapse;
+}
+
+.sl-markdown-content > table > thead,
+.sl-markdown-content > table > tbody,
+.sl-markdown-content li > table > thead,
+.sl-markdown-content li > table > tbody,
+.sl-markdown-content p + table > thead,
+.sl-markdown-content p + table > tbody,
+.sl-markdown-content blockquote > table > thead,
+.sl-markdown-content blockquote > table > tbody {
+  display: table;
+  width: max(100%, 40rem);
+  min-width: 40rem;
+  table-layout: auto;
+}
+
+.sl-markdown-content > table th,
+.sl-markdown-content > table td,
+.sl-markdown-content li > table th,
+.sl-markdown-content li > table td {
+  padding: 0.5rem 0.75rem;
+  vertical-align: top;
+  word-break: normal;
+  overflow-wrap: break-word;
+  white-space: normal;
+  hyphens: none;
 }
 
 /*

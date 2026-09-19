@@ -7,7 +7,7 @@ export const glossary: Record<string, string> = {
   csi: "Container Storage Interface — a standard API for Kubernetes to manage storage volumes. S3 Files uses the Amazon EFS CSI driver on EKS.",
   efs: "Elastic File System — AWS-managed NFS storage. S3 Files shares the same mount helper (amazon-efs-utils) and CSI driver as EFS.",
   fargate:
-    "AWS Fargate — a serverless compute engine for containers. The only ECS launch type that supports S3 Files volumes (EC2 launch type is not supported).",
+    "AWS Fargate — a serverless compute engine for containers. One of the ECS launch types that supports S3 Files volumes (alongside Managed Instances and the EC2 launch type).",
   iam: "Identity and Access Management — the AWS service that controls permissions for all resources. S3 Files requires two IAM roles: one for the file system and one for the compute resource.",
   irsa: "IAM Roles for Service Accounts — lets Kubernetes pods on EKS assume an IAM role without sharing node credentials. Used to grant the EFS CSI driver access to S3 Files.",
   "mount-target":
@@ -15,7 +15,7 @@ export const glossary: Record<string, string> = {
   nfs: "Network File System — the protocol used by S3 Files to expose S3 data as a mountable file system. Uses NFS v4.1/4.2 over port 2049 TCP.",
   s3: "Amazon S3 — the object storage service that backs S3 Files. Every file read/write is ultimately stored as an S3 object in the linked bucket.",
   s3files:
-    "Amazon S3 Files — a service that exposes an S3 bucket as a shared NFS file system. Supports EC2, EKS, ECS (Fargate), and Lambda. Uses the CLI namespace `aws s3files` and mount type `-t s3files`. Read APIs are `list-*` and `get-*` (for example `list-file-systems`, `get-file-system`), not `describe-*`.",
+    "Amazon S3 Files — a service that exposes an S3 bucket as a shared NFS file system. Supports EC2, EKS, ECS (Fargate, Managed Instances, and EC2 launch type), and Lambda. Uses the CLI namespace `aws s3files` and mount type `-t s3files`. Read APIs are `list-*` and `get-*` (for example `list-file-systems`, `get-file-system`), not `describe-*`.",
   sg: "Security Group — a stateful virtual firewall controlling inbound and outbound traffic. S3 Files requires port 2049 TCP open between the compute security group and the mount target security group.",
   sse: "Server-Side Encryption — encryption of data at rest in S3. S3 Files supports SSE-S3 (AWS-managed keys) and SSE-KMS (customer-managed keys). SSE-C is not supported.",
   versioning:
